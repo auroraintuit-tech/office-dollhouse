@@ -45,7 +45,7 @@ export default function RegisterScreen() {
                 value={name}
                 onChangeText={t => { setName(t); setNameError(''); }}
                 placeholder="Your full name"
-                placeholderTextColor="#6A4A28"
+                placeholderTextColor="#B8A88E"
                 autoCapitalize="words"
                 autoFocus
                 returnKeyType="done"
@@ -88,13 +88,13 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
   },
   title: {
-    color: '#F5EDD8',
+    color: '#33261A',
     fontSize: 38,
     fontFamily: 'Inter_700Bold',
     lineHeight: 44,
   },
   subtitle: {
-    color: '#8C7050',
+    color: '#8A7358',
     fontSize: 15,
     fontFamily: 'Inter_400Regular',
     lineHeight: 22,
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   inputWrapper: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: 'rgba(198,124,18,0.3)',
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     borderColor: '#C43020',
   },
   input: {
-    color: '#F5EDD8',
+    color: '#33261A',
     fontSize: 22,
     fontFamily: 'Inter_500Medium',
   },

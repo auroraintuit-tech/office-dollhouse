@@ -83,7 +83,7 @@ export default function CompanyScreen() {
                 value={companyName}
                 onChangeText={t => { setCompanyName(t); setNameError(''); }}
                 placeholder="e.g. Apex Ventures"
-                placeholderTextColor="#6A4A28"
+                placeholderTextColor="#B8A88E"
                 autoCapitalize="words"
                 returnKeyType="done"
                 onSubmitEditing={handleContinue}
@@ -111,8 +111,8 @@ export default function CompanyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'space-between', paddingVertical: 24 },
   titleBlock: { gap: 12, marginTop: 24 },
-  title: { color: '#F5EDD8', fontSize: 38, fontFamily: 'Inter_700Bold', lineHeight: 44 },
-  subtitle: { color: '#8C7050', fontSize: 15, fontFamily: 'Inter_400Regular' },
+  title: { color: '#33261A', fontSize: 38, fontFamily: 'Inter_700Bold', lineHeight: 44 },
+  subtitle: { color: '#8A7358', fontSize: 15, fontFamily: 'Inter_400Regular' },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   logoPicker: { position: 'relative' },
   logoImg: { width: 68, height: 68, borderRadius: 16 },
@@ -128,18 +128,18 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: -4, right: -4,
     width: 24, height: 24, borderRadius: 12,
     backgroundColor: '#C67C12', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#1A0D06',
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
-  logoLabel: { color: '#F5EDD8', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  logoHint: { color: '#8C7050', fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 4 },
+  logoLabel: { color: '#33261A', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  logoHint: { color: '#8A7358', fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 4 },
   inputBlock: { gap: 8 },
   inputWrapper: {
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16,
+    backgroundColor: '#FFFFFF', borderRadius: 16,
     borderWidth: 1.5, borderColor: 'rgba(198,124,18,0.3)',
     paddingHorizontal: 20, paddingVertical: 18,
   },
   inputError: { borderColor: '#C43020' },
-  input: { color: '#F5EDD8', fontSize: 22, fontFamily: 'Inter_500Medium' },
+  input: { color: '#33261A', fontSize: 22, fontFamily: 'Inter_500Medium' },
   errorText: { color: '#C43020', fontSize: 13, fontFamily: 'Inter_400Regular', paddingLeft: 4 },
   footer: { gap: 12 },
   btn: {

@@ -117,10 +117,10 @@ export default function StyleScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingVertical: 12, gap: 16 },
   titleBlock: { gap: 8 },
-  title: { color: '#F5EDD8', fontSize: 34, fontFamily: 'Inter_700Bold', lineHeight: 40 },
-  subtitle: { color: '#8C7050', fontSize: 14, fontFamily: 'Inter_400Regular' },
+  title: { color: '#33261A', fontSize: 34, fontFamily: 'Inter_700Bold', lineHeight: 40 },
+  subtitle: { color: '#8A7358', fontSize: 14, fontFamily: 'Inter_400Regular' },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.1)',
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardName: {
-    color: '#F5EDD8',
+    color: '#33261A',
     fontSize: 18,
     fontFamily: 'Inter_700Bold',
   },
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   cardDesc: {
-    color: '#8C7050',
+    color: '#8A7358',
     fontSize: 13,
     fontFamily: 'Inter_400Regular',
     lineHeight: 18,

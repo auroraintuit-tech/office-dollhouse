@@ -16,7 +16,7 @@ export default function OnboardingLayout({ children, step, totalSteps = 4 }: Pro
 
   return (
     <LinearGradient
-      colors={['#1A0D06', '#2C1208', '#3A1A08']}
+      colors={['#FBF5EA', '#F6EDDC', '#F0E2CA']}
       locations={[0, 0.5, 1]}
       style={styles.gradient}
     >
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#5A3A20',
+    backgroundColor: '#E2D4BC',
   },
   dotActive: {
     backgroundColor: '#C67C12',
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   dotDone: {
-    backgroundColor: '#8A5A2A',
+    backgroundColor: '#D9A85C',
   },
   content: {
     flex: 1,

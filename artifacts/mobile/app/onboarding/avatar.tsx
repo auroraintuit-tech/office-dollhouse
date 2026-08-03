@@ -127,11 +127,11 @@ export default function AvatarScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingVertical: 16, gap: 14 },
   titleBlock: { gap: 8 },
-  title: { color: '#F5EDD8', fontSize: 32, fontFamily: 'Inter_700Bold', lineHeight: 38 },
-  subtitle: { color: '#8C7050', fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20 },
+  title: { color: '#33261A', fontSize: 32, fontFamily: 'Inter_700Bold', lineHeight: 38 },
+  subtitle: { color: '#8A7358', fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20 },
   previewCard: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20, padding: 16,
     borderWidth: 1.5, borderColor: 'rgba(198,124,18,0.4)',
   },
@@ -145,14 +145,14 @@ const styles = StyleSheet.create({
     width: 26, height: 26, borderRadius: 13,
     backgroundColor: '#C67C12',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#1A0D06',
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
-  previewName: { color: '#F5EDD8', fontSize: 18, fontFamily: 'Inter_700Bold' },
-  previewHint: { color: '#8C7050', fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 4 },
+  previewName: { color: '#33261A', fontSize: 18, fontFamily: 'Inter_700Bold' },
+  previewHint: { color: '#8A7358', fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 4 },
   removePhoto: { marginTop: 6 },
   removePhotoText: { color: '#C43020', fontSize: 12, fontFamily: 'Inter_600SemiBold' },
   gridLabel: {
-    color: '#8C7050', fontSize: 11, fontFamily: 'Inter_600SemiBold',
+    color: '#8A7358', fontSize: 11, fontFamily: 'Inter_600SemiBold',
     letterSpacing: 1.2, textTransform: 'uppercase',
   },
   grid: {
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   avatarCard: {
     width: '30%',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 14,
     alignItems: 'center',
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(198,124,18,0.12)',
   },
   avatarLabel: {
-    color: '#8C7050',
+    color: '#8A7358',
     fontSize: 11,
     fontFamily: 'Inter_600SemiBold',
     textAlign: 'center',
