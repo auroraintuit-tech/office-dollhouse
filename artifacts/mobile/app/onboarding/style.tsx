@@ -41,7 +41,7 @@ const STYLES: Array<{
 ];
 
 export default function StyleScreen() {
-  const { state, setOfficeStyle, setPhase } = useGame();
+  const { state, updateGame } = useGame();
   const [selected, setSelected] = useState<OfficeStyle>(state.officeStyle);
 
   function handleSelect(id: OfficeStyle) {
@@ -51,8 +51,7 @@ export default function StyleScreen() {
 
   function handleContinue() {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    setOfficeStyle(selected);
-    setPhase('entrance');
+    updateGame({ officeStyle: selected, phase: 'entrance' });
     router.replace('/game/entrance');
   }
 

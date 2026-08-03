@@ -9,7 +9,7 @@ import { useGame } from '@/contexts/GameContext';
 import OnboardingLayout from '@/components/OnboardingLayout';
 
 export default function RegisterScreen() {
-  const { setPlayer, setPhase } = useGame();
+  const { updateGame } = useGame();
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
 
@@ -19,8 +19,7 @@ export default function RegisterScreen() {
       return;
     }
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setPlayer({ name: name.trim(), email: '', avatarId: 'ceo' });
-    setPhase('company');
+    updateGame({ player: { name: name.trim(), email: '', avatarId: 'ceo' }, phase: 'company' });
     router.replace('/onboarding/company');
   }
 

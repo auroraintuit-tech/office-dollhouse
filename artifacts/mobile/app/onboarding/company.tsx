@@ -11,7 +11,7 @@ import { useGame } from '@/contexts/GameContext';
 import OnboardingLayout from '@/components/OnboardingLayout';
 
 export default function CompanyScreen() {
-  const { state, setCompany, setPhase } = useGame();
+  const { state, updateGame } = useGame();
   const [companyName, setCompanyName] = useState(state.company?.name ?? '');
   const [logoUri, setLogoUri] = useState<string | null>(state.company?.logoUri ?? null);
   const [nameError, setNameError] = useState('');
@@ -37,8 +37,7 @@ export default function CompanyScreen() {
       return;
     }
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setCompany({ name: companyName.trim(), logoUri });
-    setPhase('avatar');
+    updateGame({ company: { name: companyName.trim(), logoUri }, phase: 'avatar' });
     router.replace('/onboarding/avatar');
   }
 

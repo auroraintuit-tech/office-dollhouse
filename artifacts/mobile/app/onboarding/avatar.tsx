@@ -8,7 +8,7 @@ import AvatarSprite from '@/components/AvatarSprite';
 import { AVATARS, AvatarId } from '@/constants/colors';
 
 export default function AvatarScreen() {
-  const { state, setPlayer, setPhase } = useGame();
+  const { state, updateGame } = useGame();
   const [selected, setSelected] = useState<AvatarId>(state.player?.avatarId ?? 'ceo');
 
   function handleSelect(id: AvatarId) {
@@ -17,10 +17,8 @@ export default function AvatarScreen() {
   }
 
   function handleContinue() {
-    if (!state.player) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setPlayer({ ...state.player, avatarId: selected });
-    setPhase('style');
+    updateGame({ player: { ...(state.player ?? { name: '', email: '' }), avatarId: selected }, phase: 'style' });
     router.replace('/onboarding/style');
   }
 

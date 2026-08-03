@@ -86,6 +86,7 @@ const INITIAL_STATE: GameState = {
 interface GameContextType {
   state: GameState;
   isLoaded: boolean;
+  updateGame: (updates: Partial<GameState>) => void;
   setPlayer: (player: Player) => void;
   setCompany: (company: Company) => void;
   setOfficeStyle: (style: OfficeStyle) => void;
@@ -172,40 +173,55 @@ export function GameProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
   }, []);
 
+  const updateGame = useCallback((updates: Partial<GameState>) => {
+    setState(prev => {
+      const next = { ...prev, ...updates };
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
   const setPlayer = useCallback((player: Player) => {
-    save({ ...state, player });
-  }, [state, save]);
+    updateGame({ player });
+  }, [updateGame]);
 
   const setCompany = useCallback((company: Company) => {
-    save({ ...state, company });
-  }, [state, save]);
+    updateGame({ company });
+  }, [updateGame]);
 
   const setOfficeStyle = useCallback((officeStyle: OfficeStyle) => {
-    save({ ...state, officeStyle });
-  }, [state, save]);
+    updateGame({ officeStyle });
+  }, [updateGame]);
 
   const setPhase = useCallback((phase: GamePhase) => {
-    save({ ...state, phase });
-  }, [state, save]);
+    updateGame({ phase });
+  }, [updateGame]);
+
+  const persist = useCallback((next: GameState) => {
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+    return next;
+  }, []);
 
   const initOffice = useCallback(() => {
-    const tasks: Task[] = [
-      { id: genId(), title: 'Set up your office space', status: 'pending', createdAt: Date.now(), assignedTo: null },
-      { id: genId(), title: 'Create a business plan', status: 'pending', createdAt: Date.now() - 1000, assignedTo: null },
-      { id: genId(), title: 'Hire your first team member', status: 'pending', createdAt: Date.now() - 2000, assignedTo: null },
-    ];
-    const documents: GameDocument[] = [
-      { id: genId(), title: 'Company Registration', type: 'contract', createdAt: Date.now() },
-      { id: genId(), title: 'Business Plan Template', type: 'memo', createdAt: Date.now() - 5000 },
-    ];
-    const events: GameEvent[] = [
-      { id: genId(), message: `Welcome to OfficeOS! Your office is open for business.`, type: 'system', timestamp: Date.now() },
-    ];
-    if (state.company?.name) {
-      events.push({ id: genId(), message: `${state.company.name} is now registered.`, type: 'system', timestamp: Date.now() - 100 });
-    }
-    save({ ...state, phase: 'office', tasks, documents, events, tutorialStep: 1 });
-  }, [state, save]);
+    setState(prev => persist({
+      ...prev,
+      phase: 'office',
+      tutorialStep: 1,
+      tasks: [
+        { id: genId(), title: 'Set up your office space', status: 'pending', createdAt: Date.now(), assignedTo: null },
+        { id: genId(), title: 'Create a business plan', status: 'pending', createdAt: Date.now() - 1000, assignedTo: null },
+        { id: genId(), title: 'Hire your first team member', status: 'pending', createdAt: Date.now() - 2000, assignedTo: null },
+      ],
+      documents: [
+        { id: genId(), title: 'Company Registration', type: 'contract', createdAt: Date.now() },
+        { id: genId(), title: 'Business Plan Template', type: 'memo', createdAt: Date.now() - 5000 },
+      ],
+      events: [
+        { id: genId(), message: `Welcome to OfficeOS! Your office is open for business.`, type: 'system', timestamp: Date.now() },
+        ...(prev.company?.name ? [{ id: genId(), message: `${prev.company.name} is now registered.`, type: 'system' as const, timestamp: Date.now() - 100 }] : []),
+      ],
+    }));
+  }, [persist]);
 
   const addEmployee = useCallback((type: EmployeeType) => {
     const COSTS: Record<EmployeeType, number> = {
@@ -213,69 +229,80 @@ export function GameProvider({ children }: { children: ReactNode }) {
       marketer: 1000, it: 1100, warehouse: 900,
     };
     const cost = COSTS[type];
-    if (state.balance < cost) return;
-    const names = EMPLOYEE_NAMES[type];
-    const name = names[state.employees.filter(e => e.type === type).length % names.length];
-    const employee: Employee = {
-      id: genId(), type, name,
-      status: 'working', hiredAt: Date.now(), messages: [],
-    };
-    const newEvent: GameEvent = {
-      id: genId(), message: `${name} joined as ${type}.`, type: 'hire', timestamp: Date.now(),
-    };
-    const updatedTask = state.tasks.map(t =>
-      t.title === 'Hire your first team member' ? { ...t, status: 'done' as const } : t
-    );
-    save({
-      ...state,
-      balance: state.balance - cost,
-      employees: [...state.employees, employee],
-      events: [newEvent, ...state.events],
-      tasks: updatedTask,
+    setState(prev => {
+      if (prev.balance < cost) return prev;
+      const names = EMPLOYEE_NAMES[type];
+      const name = names[prev.employees.filter(e => e.type === type).length % names.length];
+      const employee: Employee = { id: genId(), type, name, status: 'working', hiredAt: Date.now(), messages: [] };
+      const newEvent: GameEvent = { id: genId(), message: `${name} joined as ${type}.`, type: 'hire', timestamp: Date.now() };
+      return persist({
+        ...prev,
+        balance: prev.balance - cost,
+        employees: [...prev.employees, employee],
+        events: [newEvent, ...prev.events],
+        tasks: prev.tasks.map(t => t.title === 'Hire your first team member' ? { ...t, status: 'done' as const } : t),
+      });
     });
-  }, [state, save]);
+  }, [persist]);
 
   const addTask = useCallback((title: string) => {
-    const task: Task = {
-      id: genId(), title, status: 'pending', createdAt: Date.now(), assignedTo: null,
-    };
-    save({ ...state, tasks: [task, ...state.tasks] });
-  }, [state, save]);
+    setState(prev => persist({
+      ...prev,
+      tasks: [{ id: genId(), title, status: 'pending', createdAt: Date.now(), assignedTo: null }, ...prev.tasks],
+    }));
+  }, [persist]);
 
   const completeTask = useCallback((id: string) => {
-    const tasks = state.tasks.map(t => t.id === id ? { ...t, status: 'done' as const } : t);
-    const ev: GameEvent = { id: genId(), message: 'Task completed.', type: 'task', timestamp: Date.now() };
-    save({ ...state, tasks, events: [ev, ...state.events] });
-  }, [state, save]);
+    setState(prev => persist({
+      ...prev,
+      tasks: prev.tasks.map(t => t.id === id ? { ...t, status: 'done' as const } : t),
+      events: [{ id: genId(), message: 'Task completed.', type: 'task', timestamp: Date.now() }, ...prev.events],
+    }));
+  }, [persist]);
 
   const addEvent = useCallback((message: string, type: GameEvent['type']) => {
-    const ev: GameEvent = { id: genId(), message, type, timestamp: Date.now() };
-    save({ ...state, events: [ev, ...state.events].slice(0, 50) });
-  }, [state, save]);
+    setState(prev => persist({
+      ...prev,
+      events: [{ id: genId(), message, type, timestamp: Date.now() }, ...prev.events].slice(0, 50),
+    }));
+  }, [persist]);
 
   const sendEmployeeMessage = useCallback((employeeId: string, content: string) => {
-    const employees = state.employees.map(e => {
-      if (e.id !== employeeId) return e;
-      const userMsg: ChatMessage = { id: genId(), role: 'user', content, timestamp: Date.now() };
-      const responses = AI_RESPONSES[e.type];
-      const reply = responses[Math.floor(Math.random() * responses.length)];
-      const aiMsg: ChatMessage = { id: genId(), role: 'assistant', content: reply, timestamp: Date.now() + 100 };
-      return { ...e, status: 'working' as const, messages: [...e.messages, userMsg, aiMsg] };
-    });
-    save({ ...state, employees });
-  }, [state, save]);
+    setState(prev => persist({
+      ...prev,
+      employees: prev.employees.map(e => {
+        if (e.id !== employeeId) return e;
+        const responses = AI_RESPONSES[e.type];
+        const reply = responses[Math.floor(Math.random() * responses.length)];
+        return {
+          ...e, status: 'working' as const,
+          messages: [
+            ...e.messages,
+            { id: genId(), role: 'user' as const, content, timestamp: Date.now() },
+            { id: genId(), role: 'assistant' as const, content: reply, timestamp: Date.now() + 100 },
+          ],
+        };
+      }),
+    }));
+  }, [persist]);
 
   const advanceTutorial = useCallback(() => {
-    const next = state.tutorialStep + 1;
-    save({ ...state, tutorialStep: next });
-  }, [state, save]);
+    setState(prev => persist({ ...prev, tutorialStep: prev.tutorialStep + 1 }));
+  }, [persist]);
 
   const spendBalance = useCallback((amount: number): boolean => {
-    if (state.balance < amount) return false;
-    const ev: GameEvent = { id: genId(), message: `Spent $${amount.toLocaleString()}.`, type: 'finance', timestamp: Date.now() };
-    save({ ...state, balance: state.balance - amount, events: [ev, ...state.events] });
-    return true;
-  }, [state, save]);
+    let success = false;
+    setState(prev => {
+      if (prev.balance < amount) return prev;
+      success = true;
+      return persist({
+        ...prev,
+        balance: prev.balance - amount,
+        events: [{ id: genId(), message: `Spent $${amount.toLocaleString()}.`, type: 'finance', timestamp: Date.now() }, ...prev.events],
+      });
+    });
+    return success;
+  }, [persist]);
 
   const resetGame = useCallback(() => {
     AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
@@ -285,7 +312,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   return (
     <GameContext.Provider value={{
       state, isLoaded,
-      setPlayer, setCompany, setOfficeStyle, setPhase, initOffice,
+      updateGame, setPlayer, setCompany, setOfficeStyle, setPhase, initOffice,
       addEmployee, addTask, completeTask, addEvent,
       sendEmployeeMessage, advanceTutorial, spendBalance, resetGame,
     }}>
