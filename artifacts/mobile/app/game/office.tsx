@@ -1,360 +1,439 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Image, Platform,
+  Image, Platform, ScrollView, TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useGame, Employee } from '@/contexts/GameContext';
 import IsometricRoom from '@/components/IsometricRoom';
-import {
-  TaskModal, SafeModal, FolderModal, HireModal, ChatModal, EventFeed,
-} from '@/components/GameModals';
+import { TaskModal, SafeModal, FolderModal, HireModal } from '@/components/GameModals';
+import { EmployeeSheet } from '@/components/EmployeeSheet';
+import { ToastStack, JournalModal } from '@/components/Toasts';
+import { EMPLOYEE_VISUALS } from '@/components/OfficeCharacters';
 import AvatarSprite from '@/components/AvatarSprite';
 import { OFFICE_THEMES } from '@/constants/colors';
 
-type ActiveModal = 'tasks' | 'safe' | 'folder' | 'hire' | null;
+type ActiveModal = 'tasks' | 'safe' | 'folder' | 'hire' | 'journal' | null;
+type NavTab = 'office' | 'team' | 'tasks' | 'docs';
+
+const TOP_BAR_H = 52;
+const NAV_H = 58;
 
 export default function OfficeScreen() {
-  const { state, advanceTutorial } = useGame();
+  const { state, advanceTutorial, addTask, completeTask } = useGame();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
-  const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
+  const topPad = Platform.OS === 'web' ? 47 : insets.top;
+  const bottomPad = Platform.OS === 'web' ? 20 : Math.max(insets.bottom, 8);
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
-  const [chatEmployee, setChatEmployee] = useState<Employee | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [navTab, setNavTab] = useState<NavTab>('office');
+  const [taskInput, setTaskInput] = useState('');
 
   const t = OFFICE_THEMES[state.officeStyle];
 
-  function handleObjectTap(obj: 'board' | 'safe' | 'desk' | 'folder' | 'hire') {
+  const level = 1 + Math.min(state.employees.length, 6);
+  const companyName = state.company?.name ?? 'My Company';
+  const pendingTasks = state.tasks.filter(tk => tk.status !== 'done').length;
+  const formatBalance = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : `$${n}`;
+
+  function haptic() {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Advance tutorial when tapping highlighted object
+  }
+
+  function handleObjectTap(obj: 'board' | 'safe' | 'desk' | 'folder' | 'hire') {
+    haptic();
     if (state.tutorialStep === 1 && obj === 'board') advanceTutorial();
     if (state.tutorialStep === 2 && obj === 'safe') advanceTutorial();
     if (state.tutorialStep === 3 && (obj === 'desk' || obj === 'folder')) advanceTutorial();
 
-    if (obj === 'board' || obj === 'desk') {
-      setActiveModal('tasks');
-    } else if (obj === 'safe') {
-      setActiveModal('safe');
-    } else if (obj === 'folder') {
-      setActiveModal('folder');
-    } else if (obj === 'hire') {
-      setActiveModal('hire');
-    }
+    if (obj === 'board' || obj === 'desk') setActiveModal('tasks');
+    else if (obj === 'safe') setActiveModal('safe');
+    else if (obj === 'folder') setActiveModal('folder');
+    else if (obj === 'hire') setActiveModal('hire');
   }
 
-  const companyName = state.company?.name ?? 'My Company';
-  const pendingTasks = state.tasks.filter(t => t.status === 'pending').length;
+  function handleAddTask() {
+    if (!taskInput.trim()) return;
+    addTask(taskInput.trim());
+    setTaskInput('');
+    haptic();
+  }
 
-  // Current objective — always tell the player what to do next
+  // Objective banner text
   const objective = (() => {
-    if (state.tutorialStep === 1) return { icon: 'clipboard' as const, text: 'Tap the glowing task board on the wall' };
-    if (state.tutorialStep === 2) return { icon: 'lock-closed' as const, text: 'Open the safe to check your finances' };
-    if (state.tutorialStep === 3) return { icon: 'desktop' as const, text: 'Check your desk — this is your command center' };
-    if (state.employees.length === 0) return { icon: 'person-add' as const, text: 'Hire your first employee to start earning' };
-    if (pendingTasks > 0) return { icon: 'flash' as const, text: `Assign your ${pendingTasks} open task${pendingTasks > 1 ? 's' : ''} on the board` };
-    if (state.employees.length < 3) return { icon: 'trending-up' as const, text: 'Grow your team — tap Hire to add specialists' };
+    if (state.tutorialStep === 1) return 'Tap the glowing task board on the wall';
+    if (state.tutorialStep === 2) return 'Open the safe to check your finances';
+    if (state.tutorialStep === 3) return 'Check your desk — your command center';
+    if (state.employees.length === 0) return 'Hire your first employee to start earning';
     return null;
   })();
-  const formatBalance = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`;
-  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  const roomHeight = navTab === 'office' ? undefined : 0;
 
   return (
     <View style={[styles.screen, { backgroundColor: t.bg }]}>
-      {/* ─── Top toolbar ─── */}
-      <View style={[styles.toolbar, { paddingTop: topPad + 4 }]}>
-        <View style={styles.toolbarLeft}>
+      {/* ─── Compact top bar ─── */}
+      <View style={[styles.topBar, { paddingTop: topPad, height: topPad + TOP_BAR_H }]}>
+        <View style={styles.topLeft}>
           {state.company?.logoUri ? (
-            <Image source={{ uri: state.company.logoUri }} style={styles.toolbarLogo} />
+            <Image source={{ uri: state.company.logoUri }} style={styles.logo} />
           ) : (
-            <View style={[styles.toolbarLogoPlaceholder, { backgroundColor: t.trim }]}>
-              <Text style={styles.toolbarLogoText}>
-                {companyName.slice(0, 2).toUpperCase()}
-              </Text>
+            <View style={[styles.logoPlaceholder, { backgroundColor: '#C67C12' }]}>
+              <Text style={styles.logoText}>{companyName.slice(0, 2).toUpperCase()}</Text>
             </View>
           )}
-          <View>
-            <Text style={styles.toolbarCompany} numberOfLines={1}>{companyName}</Text>
-            <Text style={styles.toolbarDate}>{dateStr}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.companyName} numberOfLines={1}>{companyName}</Text>
+            <Text style={styles.levelText}>Level {level} office</Text>
           </View>
         </View>
-
-        <View style={styles.toolbarRight}>
-          {/* Balance */}
-          <TouchableOpacity onPress={() => setActiveModal('safe')} style={styles.toolbarBadge} activeOpacity={0.8}>
-            <Ionicons name="lock-closed" size={12} color="#F0A500" />
-            <Text style={styles.toolbarBadgeText}>{formatBalance(state.balance)}</Text>
+        <View style={styles.topRight}>
+          <TouchableOpacity onPress={() => { haptic(); setActiveModal('safe'); }} style={styles.balancePill} accessibilityLabel="Company balance">
+            <Ionicons name="wallet" size={13} color="#B8780A" />
+            <Text style={styles.balanceText}>{formatBalance(state.balance)}</Text>
           </TouchableOpacity>
-          {/* Tasks badge */}
-          {pendingTasks > 0 && (
-            <TouchableOpacity onPress={() => setActiveModal('tasks')} style={[styles.toolbarBadge, { backgroundColor: 'rgba(198,124,18,0.15)' }]} activeOpacity={0.8}>
-              <Ionicons name="checkmark-circle-outline" size={12} color="#C67C12" />
-              <Text style={[styles.toolbarBadgeText, { color: '#C67C12' }]}>{pendingTasks}</Text>
-            </TouchableOpacity>
-          )}
-          {/* Avatar */}
-          {state.player && (
-            <AvatarSprite avatarId={state.player.avatarId} size="sm" photoUri={state.player.photoUri} />
-          )}
+          <TouchableOpacity onPress={() => { haptic(); setActiveModal('journal'); }} style={styles.iconBtn} accessibilityLabel="Event journal">
+            <Ionicons name="notifications-outline" size={19} color="#4A5A68" />
+            {state.events.length > 0 && <View style={styles.journalDot} />}
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* ─── Objective banner ─── */}
-      {objective && (
-        <View style={styles.objectiveBanner}>
-          <View style={styles.objectiveIconWrap}>
-            <Ionicons name={objective.icon} size={14} color="#F0A500" />
-          </View>
-          <Text style={styles.objectiveLabel}>NEXT</Text>
-          <Text style={styles.objectiveText} numberOfLines={2}>{objective.text}</Text>
+      {/* ─── Objective strip ─── */}
+      {navTab === 'office' && objective && (
+        <View style={styles.objectiveStrip}>
+          <Ionicons name="flag" size={12} color="#B8780A" />
+          <Text style={styles.objectiveText} numberOfLines={1}>{objective}</Text>
         </View>
       )}
 
-      {/* ─── Isometric room ─── */}
-      <View style={styles.roomContainer}>
-        {state.player && (
-          <IsometricRoom
-            officeStyle={state.officeStyle}
-            avatarId={state.player.avatarId}
-            photoUri={state.player.photoUri}
-            tutorialStep={state.tutorialStep}
-            employeeCount={state.employees.length}
-            onObjectTap={handleObjectTap}
-          />
+      {/* ─── Main content ─── */}
+      <View style={{ flex: 1 }}>
+        {navTab === 'office' && (
+          <View style={styles.roomWrap}>
+            <RoomAutoSize
+              render={(h) => state.player ? (
+                <IsometricRoom
+                  officeStyle={state.officeStyle}
+                  avatarId={state.player.avatarId}
+                  photoUri={state.player.photoUri}
+                  tutorialStep={state.tutorialStep}
+                  employees={state.employees}
+                  height={h}
+                  onObjectTap={handleObjectTap}
+                  onEmployeeTap={(emp) => { haptic(); setSelectedEmployeeId(emp.id); }}
+                />
+              ) : null}
+            />
+            {/* Hire FAB */}
+            {state.tutorialStep >= 4 && (
+              <TouchableOpacity
+                onPress={() => { haptic(); setActiveModal('hire'); }}
+                style={styles.hireFab}
+                activeOpacity={0.85}
+                accessibilityLabel="Hire employee"
+              >
+                <Ionicons name="person-add" size={17} color="#FFFFFF" />
+                <Text style={styles.hireFabText}>Hire</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {navTab === 'team' && (
+          <ScrollView contentContainerStyle={styles.listPad} showsVerticalScrollIndicator={false}>
+            {state.employees.length === 0 && (
+              <View style={styles.emptyState}>
+                <Ionicons name="people-outline" size={40} color="#9AA7B2" />
+                <Text style={styles.emptyTitle}>No team yet</Text>
+                <Text style={styles.emptyDesc}>Hire your first AI employee and they'll appear in your office.</Text>
+                <TouchableOpacity onPress={() => setActiveModal('hire')} style={styles.emptyBtn}>
+                  <Text style={styles.emptyBtnText}>Hire employee</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {state.employees.map(emp => {
+              const v = EMPLOYEE_VISUALS[emp.type];
+              return (
+                <TouchableOpacity key={emp.id} style={styles.teamRow} onPress={() => setSelectedEmployeeId(emp.id)} activeOpacity={0.75}>
+                  <View style={[styles.teamAvatar, { backgroundColor: v.color }]}>
+                    <Ionicons name={v.icon} size={20} color="#FFFFFF" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.teamName}>{emp.name}</Text>
+                    <Text style={styles.teamRole}>{v.role}</Text>
+                  </View>
+                  <View style={[styles.teamStatus, {
+                    backgroundColor: emp.status === 'working' ? '#2ECC7122' : emp.status === 'done' ? '#F0A50022' : '#7A8A9922',
+                  }]}>
+                    <Text style={[styles.teamStatusText, {
+                      color: emp.status === 'working' ? '#22A05A' : emp.status === 'done' ? '#B8780A' : '#7A8A99',
+                    }]}>
+                      {emp.status === 'working' ? 'Working' : emp.status === 'done' ? 'Done' : 'Free'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+            {state.employees.length > 0 && (
+              <TouchableOpacity onPress={() => setActiveModal('hire')} style={styles.teamHireBtn} activeOpacity={0.8}>
+                <Ionicons name="add" size={18} color="#C67C12" />
+                <Text style={styles.teamHireText}>Hire another employee</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+        )}
+
+        {navTab === 'tasks' && (
+          <View style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={styles.listPad} showsVerticalScrollIndicator={false}>
+              {state.tasks.length === 0 && (
+                <View style={styles.emptyState}>
+                  <Ionicons name="checkbox-outline" size={40} color="#9AA7B2" />
+                  <Text style={styles.emptyTitle}>No tasks</Text>
+                  <Text style={styles.emptyDesc}>Add a task below or assign one to an employee.</Text>
+                </View>
+              )}
+              {state.tasks.map(task => {
+                const assignee = state.employees.find(e => e.id === task.assignedTo);
+                return (
+                  <TouchableOpacity
+                    key={task.id}
+                    style={styles.taskCard}
+                    onPress={() => task.status === 'pending' && completeTask(task.id)}
+                    activeOpacity={task.status === 'pending' ? 0.75 : 1}
+                  >
+                    <Ionicons
+                      name={task.status === 'done' ? 'checkmark-circle' : task.status === 'in_progress' ? 'sync-circle' : 'ellipse-outline'}
+                      size={20}
+                      color={task.status === 'done' ? '#2E7D5B' : task.status === 'in_progress' ? '#F0A500' : '#C67C12'}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.taskCardTitle, task.status === 'done' && { color: '#9AA7B2', textDecorationLine: 'line-through' }]}>
+                        {task.title}
+                      </Text>
+                      {assignee && <Text style={styles.taskCardMeta}>{assignee.name}{task.status === 'in_progress' ? ' · working on it' : ''}</Text>}
+                      {task.result && <Text style={styles.taskCardResult}>{task.result}</Text>}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <View style={[styles.taskInputRow]}>
+              <TextInput
+                style={styles.taskInput}
+                value={taskInput}
+                onChangeText={setTaskInput}
+                placeholder="New task..."
+                placeholderTextColor="#9AA7B2"
+                returnKeyType="done"
+                onSubmitEditing={handleAddTask}
+              />
+              <TouchableOpacity onPress={handleAddTask} style={styles.taskAddBtn} accessibilityLabel="Add task">
+                <Ionicons name="add" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {navTab === 'docs' && (
+          <ScrollView contentContainerStyle={styles.listPad} showsVerticalScrollIndicator={false}>
+            {state.documents.length === 0 && (
+              <View style={styles.emptyState}>
+                <Ionicons name="folder-open-outline" size={40} color="#9AA7B2" />
+                <Text style={styles.emptyTitle}>No documents</Text>
+                <Text style={styles.emptyDesc}>Completed tasks produce reports that appear here.</Text>
+              </View>
+            )}
+            {state.documents.map(doc => (
+              <View key={doc.id} style={styles.docRow}>
+                <View style={styles.docIcon}>
+                  <Ionicons name={doc.type === 'contract' ? 'document-text' : doc.type === 'report' ? 'bar-chart' : doc.type === 'invoice' ? 'receipt' : 'mail'} size={17} color="#2E6DA4" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.docTitle}>{doc.title}</Text>
+                  <Text style={styles.docMeta}>{doc.type.charAt(0).toUpperCase() + doc.type.slice(1)} · {new Date(doc.createdAt).toLocaleDateString()}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
         )}
       </View>
 
-      {/* ─── Employees panel (if any) ─── */}
-      {state.employees.length > 0 && (
-        <View style={styles.employeeBar}>
-          {state.employees.slice(0, 5).map(emp => (
+      {/* ─── Bottom navigation ─── */}
+      <View style={[styles.nav, { paddingBottom: bottomPad, height: NAV_H + bottomPad }]}>
+        {([
+          ['office', 'business', 'Office'],
+          ['team', 'people', 'Team'],
+          ['tasks', 'checkbox', 'Tasks'],
+          ['docs', 'folder', 'Docs'],
+        ] as const).map(([key, icon, label]) => {
+          const active = navTab === key;
+          const badge = key === 'tasks' && pendingTasks > 0 ? pendingTasks : null;
+          return (
             <TouchableOpacity
-              key={emp.id}
-              onPress={() => { setChatEmployee(emp); }}
-              style={styles.employeeChip}
-              activeOpacity={0.8}
+              key={key}
+              onPress={() => { haptic(); setNavTab(key); }}
+              style={styles.navItem}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={label}
             >
-              <View style={[styles.empDot, { backgroundColor: emp.status === 'working' ? '#3D8B66' : '#8C7050' }]} />
-              <Text style={styles.empName} numberOfLines={1}>{emp.name.split(' ')[0]}</Text>
+              <View>
+                <Ionicons name={active ? icon : `${icon}-outline` as any} size={22} color={active ? '#C67C12' : '#8A97A3'} />
+                {badge != null && (
+                  <View style={styles.navBadge}><Text style={styles.navBadgeText}>{badge}</Text></View>
+                )}
+              </View>
+              <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
             </TouchableOpacity>
-          ))}
-          {state.employees.length === 0 && (
-            <TouchableOpacity onPress={() => setActiveModal('hire')} style={styles.hireChip} activeOpacity={0.8}>
-              <Ionicons name="add" size={14} color="#C67C12" />
-              <Text style={styles.hireChipText}>Hire</Text>
-            </TouchableOpacity>
-          )}
-          {state.employees.length > 0 && (
-            <TouchableOpacity onPress={() => setActiveModal('hire')} style={styles.hireChip} activeOpacity={0.8}>
-              <Ionicons name="add" size={14} color="#C67C12" />
-              <Text style={styles.hireChipText}>Hire</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {/* ─── Bottom event feed ─── */}
-      <View style={[styles.bottomBar, { paddingBottom: bottomPad + 8 }]}>
-        <View style={styles.eventFeedContainer}>
-          <EventFeed visible={state.tutorialStep >= 5 || state.events.length > 0} />
-        </View>
-        {state.tutorialStep >= 4 && state.employees.length === 0 && (
-          <TouchableOpacity
-            onPress={() => setActiveModal('hire')}
-            style={styles.hireBtn}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="person-add" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.hireBtnText}>Hire First Employee</Text>
-          </TouchableOpacity>
-        )}
+          );
+        })}
       </View>
+
+      {/* ─── Toasts ─── */}
+      <ToastStack topOffset={topPad + TOP_BAR_H + 6} />
 
       {/* ─── Modals ─── */}
       <TaskModal visible={activeModal === 'tasks'} onClose={() => setActiveModal(null)} />
       <SafeModal visible={activeModal === 'safe'} onClose={() => setActiveModal(null)} />
       <FolderModal visible={activeModal === 'folder'} onClose={() => setActiveModal(null)} />
       <HireModal visible={activeModal === 'hire'} onClose={() => setActiveModal(null)} />
-      <ChatModal employee={chatEmployee} onClose={() => setChatEmployee(null)} />
+      <JournalModal visible={activeModal === 'journal'} onClose={() => setActiveModal(null)} />
+      <EmployeeSheet employeeId={selectedEmployeeId} onClose={() => setSelectedEmployeeId(null)} />
+    </View>
+  );
+}
+
+/** Measures available space and passes height to the room. */
+function RoomAutoSize({ render }: { render: (height: number) => React.ReactNode }) {
+  const [h, setH] = useState(0);
+  return (
+    <View style={{ flex: 1, justifyContent: 'center' }} onLayout={e => setH(e.nativeEvent.layout.height)}>
+      {h > 0 ? render(h) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  toolbar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    justifyContent: 'space-between',
+  screen: { flex: 1 },
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.07)',
     zIndex: 10,
   },
-  toolbarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
+  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1, marginRight: 10 },
+  logo: { width: 32, height: 32, borderRadius: 9 },
+  logoPlaceholder: { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  logoText: { color: '#FFFFFF', fontSize: 12, fontFamily: 'Inter_700Bold' },
+  companyName: { color: '#1E2A36', fontSize: 14.5, fontFamily: 'Inter_700Bold' },
+  levelText: { color: '#8A97A3', fontSize: 10.5, fontFamily: 'Inter_500Medium', marginTop: 0.5 },
+  topRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  balancePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#F0A50018',
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12,
+    minHeight: 32,
   },
-  toolbarLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  balanceText: { color: '#B8780A', fontSize: 12.5, fontFamily: 'Inter_700Bold' },
+  iconBtn: { padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  journalDot: {
+    position: 'absolute', top: 8, right: 9,
+    width: 7, height: 7, borderRadius: 4, backgroundColor: '#E67E22',
+    borderWidth: 1, borderColor: '#FFFFFF',
   },
-  toolbarLogoPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+  objectiveStrip: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    marginHorizontal: 14, marginTop: 8,
+    paddingHorizontal: 11, paddingVertical: 8,
+    borderRadius: 11,
+    backgroundColor: '#F0A50014',
+    borderWidth: 1, borderColor: '#F0A50030',
   },
-  toolbarLogoText: {
-    color: '#F0A500',
-    fontSize: 13,
-    fontFamily: 'Inter_700Bold',
-  },
-  toolbarCompany: {
-    color: '#F5EDD8',
-    fontSize: 15,
-    fontFamily: 'Inter_700Bold',
-    maxWidth: 160,
-  },
-  toolbarDate: {
-    color: '#8C7050',
-    fontSize: 11,
-    fontFamily: 'Inter_400Regular',
-    marginTop: 1,
-  },
-  toolbarRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  toolbarBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(240,165,0,0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  toolbarBadgeText: {
-    color: '#F0A500',
-    fontSize: 12,
-    fontFamily: 'Inter_700Bold',
-  },
-  objectiveBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    marginBottom: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 14,
-    backgroundColor: 'rgba(240,165,0,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(240,165,0,0.28)',
-  },
-  objectiveIconWrap: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(240,165,0,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  objectiveLabel: {
-    color: '#8C7050',
-    fontSize: 9,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1.2,
-  },
-  objectiveText: {
-    flex: 1,
-    color: '#F5EDD8',
-    fontSize: 12.5,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  roomContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  employeeBar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  employeeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  empDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  empName: {
-    color: '#F5EDD8',
-    fontSize: 12,
-    fontFamily: 'Inter_500Medium',
-    maxWidth: 60,
-  },
-  hireChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(198,124,18,0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(198,124,18,0.3)',
-  },
-  hireChipText: {
-    color: '#C67C12',
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  bottomBar: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    gap: 10,
-  },
-  eventFeedContainer: {
-    alignItems: 'flex-start',
-  },
-  hireBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  objectiveText: { flex: 1, color: '#6B4E2E', fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  roomWrap: { flex: 1 },
+  hireFab: {
+    position: 'absolute', right: 14, bottom: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#C67C12',
-    borderRadius: 20,
-    paddingVertical: 14,
-    shadowColor: '#C67C12',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderRadius: 24, minHeight: 44,
+    shadowColor: '#C67C12', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  hireBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontFamily: 'Inter_700Bold',
+  hireFabText: { color: '#FFFFFF', fontSize: 14, fontFamily: 'Inter_700Bold' },
+  // Lists
+  listPad: { padding: 14, paddingBottom: 20 },
+  emptyState: { alignItems: 'center', paddingVertical: 44, gap: 8 },
+  emptyTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#4A5A68' },
+  emptyDesc: { fontSize: 13, fontFamily: 'Inter_400Regular', color: '#8A97A3', textAlign: 'center', maxWidth: 240, lineHeight: 18 },
+  emptyBtn: { marginTop: 8, backgroundColor: '#C67C12', paddingHorizontal: 20, paddingVertical: 11, borderRadius: 14, minHeight: 44, justifyContent: 'center' },
+  emptyBtnText: { color: '#FFFFFF', fontSize: 14, fontFamily: 'Inter_700Bold' },
+  teamRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#FFFFFF', borderRadius: 15, padding: 13, marginBottom: 9,
+    shadowColor: '#1E2A36', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
+  teamAvatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  teamName: { fontSize: 14.5, fontFamily: 'Inter_600SemiBold', color: '#1E2A36' },
+  teamRole: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#8A97A3', marginTop: 1 },
+  teamStatus: { paddingHorizontal: 9, paddingVertical: 4.5, borderRadius: 10 },
+  teamStatusText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
+  teamHireBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderWidth: 1.5, borderColor: '#C67C1250', borderStyle: 'dashed',
+    borderRadius: 15, paddingVertical: 14, marginTop: 4, minHeight: 48,
+  },
+  teamHireText: { color: '#C67C12', fontSize: 14, fontFamily: 'Inter_600SemiBold' },
+  taskCard: {
+    flexDirection: 'row', gap: 11, alignItems: 'flex-start',
+    backgroundColor: '#FFFFFF', borderRadius: 15, padding: 13, marginBottom: 9,
+    shadowColor: '#1E2A36', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  taskCardTitle: { fontSize: 14, fontFamily: 'Inter_500Medium', color: '#1E2A36' },
+  taskCardMeta: { fontSize: 11.5, fontFamily: 'Inter_400Regular', color: '#8A97A3', marginTop: 2 },
+  taskCardResult: { fontSize: 12.5, fontFamily: 'Inter_400Regular', color: '#2E7D5B', marginTop: 4, lineHeight: 17 },
+  taskInputRow: {
+    flexDirection: 'row', gap: 9, paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.07)',
+  },
+  taskInput: {
+    flex: 1, backgroundColor: '#F1F5F8', borderRadius: 12, paddingHorizontal: 13, paddingVertical: 10,
+    fontSize: 14.5, fontFamily: 'Inter_400Regular', color: '#1E2A36',
+    borderWidth: 1, borderColor: '#E0E7EC',
+  },
+  taskAddBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#C67C12', alignItems: 'center', justifyContent: 'center' },
+  docRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#FFFFFF', borderRadius: 15, padding: 13, marginBottom: 9,
+    shadowColor: '#1E2A36', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  docIcon: { width: 38, height: 38, borderRadius: 11, backgroundColor: '#2E6DA418', alignItems: 'center', justifyContent: 'center' },
+  docTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#1E2A36' },
+  docMeta: { fontSize: 11.5, fontFamily: 'Inter_400Regular', color: '#8A97A3', marginTop: 2 },
+  // Bottom nav
+  nav: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.08)',
+    paddingTop: 7,
+  },
+  navItem: { flex: 1, alignItems: 'center', gap: 2, minHeight: 44 },
+  navLabel: { fontSize: 10, fontFamily: 'Inter_600SemiBold', color: '#8A97A3' },
+  navLabelActive: { color: '#C67C12' },
+  navBadge: {
+    position: 'absolute', top: -4, right: -10,
+    backgroundColor: '#E23E3E', borderRadius: 8, minWidth: 15, height: 15,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
+  },
+  navBadgeText: { color: '#FFFFFF', fontSize: 9, fontFamily: 'Inter_700Bold' },
 });

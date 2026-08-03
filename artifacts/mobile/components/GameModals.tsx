@@ -196,8 +196,15 @@ const EMPLOYEE_DEFS: Array<{
 
 export function HireModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { state, addEmployee } = useGame();
+  const [hiring, setHiring] = useState(false);
+
+  React.useEffect(() => {
+    if (visible) setHiring(false);
+  }, [visible]);
 
   function hire(type: EmployeeType) {
+    if (hiring) return; // guard against double-tap duplicates
+    setHiring(true);
     addEmployee(type);
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onClose();

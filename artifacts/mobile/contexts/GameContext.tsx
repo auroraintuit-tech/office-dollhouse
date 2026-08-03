@@ -27,13 +27,17 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export type EmployeeStatus = 'idle' | 'working' | 'done' | 'attention' | 'away';
+
 export interface Employee {
   id: string;
   type: EmployeeType;
   name: string;
-  status: 'idle' | 'working' | 'away';
+  status: EmployeeStatus;
   hiredAt: number;
   messages: ChatMessage[];
+  currentTaskId?: string | null;
+  lastResult?: string | null;
 }
 
 export interface Task {
@@ -42,6 +46,8 @@ export interface Task {
   status: 'pending' | 'in_progress' | 'done';
   createdAt: number;
   assignedTo: string | null;
+  finishAt?: number | null; // when an in_progress task auto-completes
+  result?: string | null;
 }
 
 export interface GameDocument {
@@ -95,6 +101,8 @@ interface GameContextType {
   initOffice: () => void;
   addEmployee: (type: EmployeeType) => void;
   addTask: (title: string) => void;
+  assignTask: (employeeId: string, title: string) => void;
+  acknowledgeResult: (employeeId: string) => void;
   completeTask: (id: string) => void;
   addEvent: (msg: string, type: GameEvent['type']) => void;
   sendEmployeeMessage: (employeeId: string, content: string) => void;
@@ -241,7 +249,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (prev.balance < cost) return prev;
       const names = EMPLOYEE_NAMES[type];
       const name = names[prev.employees.filter(e => e.type === type).length % names.length];
-      const employee: Employee = { id: genId(), type, name, status: 'working', hiredAt: Date.now(), messages: [] };
+      const employee: Employee = { id: genId(), type, name, status: 'idle', hiredAt: Date.now(), messages: [], currentTaskId: null, lastResult: null };
       const newEvent: GameEvent = { id: genId(), message: `${name} joined as ${type}.`, type: 'hire', timestamp: Date.now() };
       return persist({
         ...prev,
@@ -252,6 +260,70 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     });
   }, [persist]);
+
+  const RESULT_TEXTS: Record<EmployeeType, string[]> = {
+    assistant: ['Schedule organized and reminders set.', 'All arrangements completed and confirmed.'],
+    accountant: ['Financial report ready — numbers look healthy.', 'Books balanced, expense summary attached.'],
+    lawyer: ['Contract drafted and reviewed for compliance.', 'Legal memo prepared with recommendations.'],
+    marketer: ['Campaign brief ready — projected reach looks strong.', 'Market analysis done, strategy proposed.'],
+    it: ['System configured and tested successfully.', 'Automation deployed — process now runs itself.'],
+    warehouse: ['Inventory updated and layout optimized.', 'Logistics coordinated, shipments on track.'],
+  };
+
+  const assignTask = useCallback((employeeId: string, title: string) => {
+    setState(prev => {
+      const emp = prev.employees.find(e => e.id === employeeId);
+      if (!emp || emp.status === 'working') return prev; // one task at a time
+      const taskId = genId();
+      const finishAt = Date.now() + 10000 + Math.random() * 8000;
+      return persist({
+        ...prev,
+        tasks: [{ id: taskId, title, status: 'in_progress' as const, createdAt: Date.now(), assignedTo: employeeId, finishAt }, ...prev.tasks],
+        employees: prev.employees.map(e => e.id === employeeId
+          ? { ...e, status: 'working' as const, currentTaskId: taskId }
+          : e),
+        events: [{ id: genId(), message: `Task "${title}" assigned to ${emp.name}.`, type: 'task' as const, timestamp: Date.now() }, ...prev.events].slice(0, 50),
+      });
+    });
+  }, [persist]);
+
+  const acknowledgeResult = useCallback((employeeId: string) => {
+    setState(prev => persist({
+      ...prev,
+      employees: prev.employees.map(e => e.id === employeeId && e.status === 'done'
+        ? { ...e, status: 'idle' as const }
+        : e),
+    }));
+  }, [persist]);
+
+  // Tick: auto-complete in-progress tasks whose finishAt passed
+  useEffect(() => {
+    if (!isLoaded) return;
+    const iv = setInterval(() => {
+      setState(prev => {
+        const now = Date.now();
+        const due = prev.tasks.filter(t => t.status === 'in_progress' && t.finishAt && t.finishAt <= now);
+        if (due.length === 0) return prev;
+        let next = { ...prev };
+        for (const task of due) {
+          const emp = next.employees.find(e => e.id === task.assignedTo);
+          const pool = emp ? RESULT_TEXTS[emp.type] : ['Task completed.'];
+          const result = pool[Math.floor(Math.random() * pool.length)];
+          next = {
+            ...next,
+            tasks: next.tasks.map(t => t.id === task.id ? { ...t, status: 'done' as const, result } : t),
+            employees: next.employees.map(e => e.id === task.assignedTo
+              ? { ...e, status: 'done' as const, currentTaskId: null, lastResult: result }
+              : e),
+            documents: [{ id: genId(), title: task.title, type: 'report' as const, createdAt: now }, ...next.documents],
+            events: [{ id: genId(), message: `${emp?.name ?? 'Employee'} finished "${task.title}".`, type: 'task' as const, timestamp: now }, ...next.events].slice(0, 50),
+          };
+        }
+        return persist(next);
+      });
+    }, 2000);
+    return () => clearInterval(iv);
+  }, [isLoaded, persist]);
 
   const addTask = useCallback((title: string) => {
     setState(prev => persist({
@@ -321,7 +393,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     <GameContext.Provider value={{
       state, isLoaded,
       updateGame, setPlayer, setCompany, setOfficeStyle, setPhase, initOffice,
-      addEmployee, addTask, completeTask, addEvent,
+      addEmployee, addTask, assignTask, acknowledgeResult, completeTask, addEvent,
       sendEmployeeMessage, advanceTutorial, spendBalance, resetGame,
     }}>
       {children}
