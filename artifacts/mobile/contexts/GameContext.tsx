@@ -12,6 +12,7 @@ export interface Player {
   name: string;
   email: string;
   avatarId: AvatarId;
+  photoUri?: string | null;
 }
 
 export interface Company {

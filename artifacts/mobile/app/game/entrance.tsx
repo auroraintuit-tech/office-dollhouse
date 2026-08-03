@@ -30,6 +30,7 @@ export default function EntranceScreen() {
         companyName={state.company.name}
         logoUri={state.company.logoUri}
         avatarId={state.player.avatarId}
+        photoUri={state.player.photoUri}
         officeStyle={state.officeStyle}
         onEntered={handleEntered}
       />

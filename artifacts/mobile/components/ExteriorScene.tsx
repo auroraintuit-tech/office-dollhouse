@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OFFICE_THEMES } from '@/constants/colors';
 import { OfficeStyle } from '@/contexts/GameContext';
 import { AvatarId, AVATARS } from '@/constants/colors';
+import { GameCharacter } from '@/components/AvatarSprite';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -19,6 +20,7 @@ interface Props {
   companyName: string;
   logoUri: string | null;
   avatarId: AvatarId;
+  photoUri?: string | null;
   officeStyle: OfficeStyle;
   onEntered: () => void;
 }
@@ -40,7 +42,7 @@ const AVATAR_Y = GROUND_Y - 60;
 const AVATAR_START_X = SW - 10;
 const AVATAR_END_X = DOOR_X + DOOR_W / 2 - 16;
 
-export default function ExteriorScene({ companyName, logoUri, avatarId, officeStyle, onEntered }: Props) {
+export default function ExteriorScene({ companyName, logoUri, avatarId, photoUri, officeStyle, onEntered }: Props) {
   const insets = useSafeAreaInsets();
   const t = OFFICE_THEMES[officeStyle];
   const avatar = AVATARS.find(a => a.id === avatarId) ?? AVATARS[0];
@@ -267,15 +269,7 @@ export default function ExteriorScene({ companyName, logoUri, avatarId, officeSt
 
       {/* Avatar character */}
       <Animated.View style={[styles.avatarWrapper, { top: AVATAR_Y }, avatarStyle]}>
-        <View style={[styles.charHead, { backgroundColor: '#E8C8A0' }]} />
-        <View style={[styles.charHair, { backgroundColor: avatar.color }]} />
-        <View style={[styles.charBody, { backgroundColor: avatar.color }]} />
-        <View style={[styles.charArmL, { backgroundColor: avatar.accent }]} />
-        <View style={[styles.charArmR, { backgroundColor: avatar.accent }]} />
-        <View style={styles.charLegsRow}>
-          <View style={[styles.charLeg, { backgroundColor: '#3A2A18' }]} />
-          <View style={[styles.charLeg, { backgroundColor: '#3A2A18', marginLeft: 3 }]} />
-        </View>
+        <GameCharacter avatarId={avatarId} photoUri={photoUri} facing="left" />
       </Animated.View>
 
       {/* Top padding for status bar */}

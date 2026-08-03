@@ -47,6 +47,17 @@ export default function OfficeScreen() {
 
   const companyName = state.company?.name ?? 'My Company';
   const pendingTasks = state.tasks.filter(t => t.status === 'pending').length;
+
+  // Current objective — always tell the player what to do next
+  const objective = (() => {
+    if (state.tutorialStep === 1) return { icon: 'clipboard' as const, text: 'Tap the glowing task board on the wall' };
+    if (state.tutorialStep === 2) return { icon: 'lock-closed' as const, text: 'Open the safe to check your finances' };
+    if (state.tutorialStep === 3) return { icon: 'desktop' as const, text: 'Check your desk — this is your command center' };
+    if (state.employees.length === 0) return { icon: 'person-add' as const, text: 'Hire your first employee to start earning' };
+    if (pendingTasks > 0) return { icon: 'flash' as const, text: `Assign your ${pendingTasks} open task${pendingTasks > 1 ? 's' : ''} on the board` };
+    if (state.employees.length < 3) return { icon: 'trending-up' as const, text: 'Grow your team — tap Hire to add specialists' };
+    return null;
+  })();
   const formatBalance = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`;
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -85,10 +96,21 @@ export default function OfficeScreen() {
           )}
           {/* Avatar */}
           {state.player && (
-            <AvatarSprite avatarId={state.player.avatarId} size="sm" />
+            <AvatarSprite avatarId={state.player.avatarId} size="sm" photoUri={state.player.photoUri} />
           )}
         </View>
       </View>
+
+      {/* ─── Objective banner ─── */}
+      {objective && (
+        <View style={styles.objectiveBanner}>
+          <View style={styles.objectiveIconWrap}>
+            <Ionicons name={objective.icon} size={14} color="#F0A500" />
+          </View>
+          <Text style={styles.objectiveLabel}>NEXT</Text>
+          <Text style={styles.objectiveText} numberOfLines={2}>{objective.text}</Text>
+        </View>
+      )}
 
       {/* ─── Isometric room ─── */}
       <View style={styles.roomContainer}>
@@ -96,6 +118,7 @@ export default function OfficeScreen() {
           <IsometricRoom
             officeStyle={state.officeStyle}
             avatarId={state.player.avatarId}
+            photoUri={state.player.photoUri}
             tutorialStep={state.tutorialStep}
             employeeCount={state.employees.length}
             onObjectTap={handleObjectTap}
@@ -224,6 +247,39 @@ const styles = StyleSheet.create({
     color: '#F0A500',
     fontSize: 12,
     fontFamily: 'Inter_700Bold',
+  },
+  objectiveBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 14,
+    backgroundColor: 'rgba(240,165,0,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(240,165,0,0.28)',
+  },
+  objectiveIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(240,165,0,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  objectiveLabel: {
+    color: '#8C7050',
+    fontSize: 9,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 1.2,
+  },
+  objectiveText: {
+    flex: 1,
+    color: '#F5EDD8',
+    fontSize: 12.5,
+    fontFamily: 'Inter_600SemiBold',
   },
   roomContainer: {
     flex: 1,

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Ionicons } from '@expo/vector-icons';
 import { useGame } from '@/contexts/GameContext';
 import OnboardingLayout from '@/components/OnboardingLayout';
 import AvatarSprite from '@/components/AvatarSprite';
@@ -10,15 +13,46 @@ import { AVATARS, AvatarId } from '@/constants/colors';
 export default function AvatarScreen() {
   const { state, updateGame } = useGame();
   const [selected, setSelected] = useState<AvatarId>(state.player?.avatarId ?? 'ceo');
+  const [photoUri, setPhotoUri] = useState<string | null>(state.player?.photoUri ?? null);
 
   function handleSelect(id: AvatarId) {
     setSelected(id);
     if (Platform.OS !== 'web') Haptics.selectionAsync();
   }
 
+  async function pickPhoto() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      let uri = result.assets[0].uri;
+      // Copy into permanent app storage — the picker URI is a temp cache
+      // file the OS may delete, which would blank the avatar after reload.
+      if (Platform.OS !== 'web' && FileSystem.documentDirectory) {
+        try {
+          const dest = `${FileSystem.documentDirectory}player-photo.jpg`;
+          await FileSystem.copyAsync({ from: uri, to: dest });
+          uri = `${dest}?v=${Date.now()}`; // cache-bust Image after re-pick
+        } catch {
+          // fall back to the picker URI
+        }
+      }
+      setPhotoUri(uri);
+      if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }
+
   function handleContinue() {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    updateGame({ player: { ...(state.player ?? { name: '', email: '' }), avatarId: selected }, phase: 'style' });
+    updateGame({
+      player: { ...(state.player ?? { name: '', email: '' }), avatarId: selected, photoUri },
+      phase: 'style',
+    });
     router.replace('/onboarding/style');
   }
 
@@ -28,18 +62,36 @@ export default function AvatarScreen() {
     <OnboardingLayout step={3}>
       <View style={styles.container}>
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Choose your{'\n'}avatar</Text>
-          <Text style={styles.subtitle}>This is how you'll appear in your office</Text>
+          <Text style={styles.title}>Create your{'\n'}character</Text>
+          <Text style={styles.subtitle}>Add your photo — your character will wear your face in the office</Text>
         </View>
 
-        {/* Selected avatar preview */}
+        {/* Photo + preview row */}
         <View style={styles.previewCard}>
-          <AvatarSprite avatarId={selected} size="lg" selected />
+          <TouchableOpacity onPress={pickPhoto} activeOpacity={0.8} style={styles.photoWrap}>
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.photo} />
+            ) : (
+              <AvatarSprite avatarId={selected} size="lg" selected />
+            )}
+            <View style={styles.photoBadge}>
+              <Ionicons name={photoUri ? 'camera-reverse' : 'camera'} size={13} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.previewName}>{selectedAvatar.label}</Text>
-            <Text style={styles.previewHint}>Your role in the game</Text>
+            <Text style={styles.previewName}>{photoUri ? (state.player?.name ?? 'You') : selectedAvatar.label}</Text>
+            <Text style={styles.previewHint}>
+              {photoUri ? 'Looking sharp! Tap to change photo.' : 'Tap to use your own photo'}
+            </Text>
+            {photoUri && (
+              <TouchableOpacity onPress={() => setPhotoUri(null)} style={styles.removePhoto}>
+                <Text style={styles.removePhotoText}>Remove photo</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
+
+        <Text style={styles.gridLabel}>{photoUri ? 'Outfit style' : 'Or pick a character'}</Text>
 
         {/* Avatar grid */}
         <ScrollView
@@ -54,7 +106,7 @@ export default function AvatarScreen() {
               onPress={() => handleSelect(av.id)}
               activeOpacity={0.75}
             >
-              <AvatarSprite avatarId={av.id} size="md" selected={selected === av.id} />
+              <AvatarSprite avatarId={av.id} size="md" selected={selected === av.id} photoUri={photoUri} />
               <Text style={[styles.avatarLabel, selected === av.id && styles.avatarLabelActive]}>
                 {av.label}
               </Text>
@@ -64,7 +116,7 @@ export default function AvatarScreen() {
 
         <View style={styles.footer}>
           <TouchableOpacity style={styles.btn} onPress={handleContinue} activeOpacity={0.85}>
-            <Text style={styles.btnText}>Choose Avatar</Text>
+            <Text style={styles.btnText}>Continue</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -73,18 +125,36 @@ export default function AvatarScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingVertical: 16, gap: 16 },
+  container: { flex: 1, paddingVertical: 16, gap: 14 },
   titleBlock: { gap: 8 },
-  title: { color: '#F5EDD8', fontSize: 34, fontFamily: 'Inter_700Bold', lineHeight: 40 },
-  subtitle: { color: '#8C7050', fontSize: 14, fontFamily: 'Inter_400Regular' },
+  title: { color: '#F5EDD8', fontSize: 32, fontFamily: 'Inter_700Bold', lineHeight: 38 },
+  subtitle: { color: '#8C7050', fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20 },
   previewCard: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: 20, padding: 16,
     borderWidth: 1.5, borderColor: 'rgba(198,124,18,0.4)',
   },
+  photoWrap: { position: 'relative' },
+  photo: {
+    width: 88, height: 88, borderRadius: 44,
+    borderWidth: 3, borderColor: '#C67C12',
+  },
+  photoBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: '#C67C12',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#1A0D06',
+  },
   previewName: { color: '#F5EDD8', fontSize: 18, fontFamily: 'Inter_700Bold' },
   previewHint: { color: '#8C7050', fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 4 },
+  removePhoto: { marginTop: 6 },
+  removePhotoText: { color: '#C43020', fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  gridLabel: {
+    color: '#8C7050', fontSize: 11, fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 1.2, textTransform: 'uppercase',
+  },
   grid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 12,
     justifyContent: 'space-between',

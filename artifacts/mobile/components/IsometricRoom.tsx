@@ -4,10 +4,11 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withRepeat,
   withSequence, withSpring, withDelay,
 } from 'react-native-reanimated';
-import Svg, { G, Polygon, Path, Rect, Circle, Line, Ellipse, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import Svg, { G, Polygon, Path, Rect, Circle, Line, Ellipse, Defs, LinearGradient as SvgLinearGradient, RadialGradient as SvgRadialGradient, Stop } from 'react-native-svg';
 import { OFFICE_THEMES, OfficeStyleTheme } from '@/constants/colors';
 import { OfficeStyle } from '@/contexts/GameContext';
 import { AvatarId, AVATARS } from '@/constants/colors';
+import { GameCharacter } from '@/components/AvatarSprite';
 
 const { width: SW } = Dimensions.get('window');
 const SCALE = SW / 390;
@@ -16,6 +17,7 @@ const ROOM_H = 360 * SCALE;
 interface Props {
   officeStyle: OfficeStyle;
   avatarId: AvatarId;
+  photoUri?: string | null;
   tutorialStep: number;
   employeeCount: number;
   onObjectTap: (obj: 'board' | 'safe' | 'desk' | 'folder' | 'hire') => void;
@@ -36,7 +38,7 @@ const TUTORIAL_HINTS: Record<number, { obj: string; text: string; dx: number; dy
   3: { obj: 'desk',  text: 'Your\nworkspace',       dx: 225, dy: 215 },
 };
 
-export default function IsometricRoom({ officeStyle, avatarId, tutorialStep, employeeCount, onObjectTap }: Props) {
+export default function IsometricRoom({ officeStyle, avatarId, photoUri, tutorialStep, employeeCount, onObjectTap }: Props) {
   const t = OFFICE_THEMES[officeStyle];
   const avatar = AVATARS.find(a => a.id === avatarId) ?? AVATARS[0];
 
@@ -98,6 +100,25 @@ export default function IsometricRoom({ officeStyle, avatarId, tutorialStep, emp
             <Stop offset="0" stopColor={t.floor} stopOpacity="1" />
             <Stop offset="1" stopColor={t.floor} stopOpacity="0.85" />
           </SvgLinearGradient>
+          {/* Warm light pool on floor */}
+          <SvgRadialGradient id="lightPool" cx="0.5" cy="0.5" r="0.5">
+            <Stop offset="0" stopColor={t.ceilingGlow} stopOpacity="0.22" />
+            <Stop offset="1" stopColor={t.ceilingGlow} stopOpacity="0" />
+          </SvgRadialGradient>
+          {/* Window light shaft */}
+          <SvgLinearGradient id="lightShaft" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={t.windowGlow} stopOpacity="0.18" />
+            <Stop offset="1" stopColor={t.windowGlow} stopOpacity="0" />
+          </SvgLinearGradient>
+          {/* Vertical wall shading — darker near ceiling */}
+          <SvgLinearGradient id="wallShade" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#000000" stopOpacity="0.28" />
+            <Stop offset="0.6" stopColor="#000000" stopOpacity="0" />
+          </SvgLinearGradient>
+          <SvgLinearGradient id="rugGrad" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={t.trim} stopOpacity="0.35" />
+            <Stop offset="1" stopColor={t.trim} stopOpacity="0.18" />
+          </SvgLinearGradient>
         </Defs>
 
         {/* Sky / backdrop */}
@@ -115,6 +136,12 @@ export default function IsometricRoom({ officeStyle, avatarId, tutorialStep, emp
         <Line x1="315" y1="145" x2="235" y2="82" stroke={t.trim} strokeWidth="0.5" opacity="0.3" />
         <Line x1="275" y1="145" x2="215" y2="96" stroke={t.trim} strokeWidth="0.5" opacity="0.3" />
 
+        {/* Wall shading — darker near ceiling for depth */}
+        <Polygon points="195,165 35,255 35,145 195,55" fill="url(#wallShade)" />
+        <Polygon points="195,165 355,255 355,145 195,55" fill="url(#wallShade)" />
+        {/* Corner shadow where walls meet */}
+        <Line x1="195" y1="55" x2="195" y2="165" stroke="#000" strokeWidth="3" opacity="0.15" />
+
         {/* Floor */}
         <Polygon points="195,165 355,255 195,345 35,255" fill="url(#floorGrad)" />
         {/* Floor plank lines */}
@@ -128,6 +155,15 @@ export default function IsometricRoom({ officeStyle, avatarId, tutorialStep, emp
             stroke={OFFICE_THEMES[officeStyle].floorLine} strokeWidth={0.8} opacity={0.4} />;
         })}
 
+        {/* Warm light pool in room center */}
+        <Ellipse cx={195} cy={255} rx={130} ry={72} fill="url(#lightPool)" />
+        {/* Light shaft from window onto floor */}
+        <Polygon points="256,134 315,149 300,240 230,215" fill="url(#lightShaft)" />
+
+        {/* Rug under desk area */}
+        <Polygon points="190,205 300,268 195,325 88,262" fill="url(#rugGrad)" />
+        <Polygon points="190,213 288,268 195,317 100,262" fill="none" stroke={t.trim} strokeWidth="1" opacity="0.25" />
+
         {/* Ceiling edge / trim */}
         <Line x1="35" y1="145" x2="195" y2="55" stroke={t.ceilingGlow} strokeWidth="1.5" opacity="0.6" />
         <Line x1="195" y1="55" x2="355" y2="145" stroke={t.ceilingGlow} strokeWidth="1.5" opacity="0.6" />
@@ -136,8 +172,23 @@ export default function IsometricRoom({ officeStyle, avatarId, tutorialStep, emp
         <Line x1="35" y1="255" x2="195" y2="165" stroke={t.trim} strokeWidth="2" opacity="0.5" />
         <Line x1="195" y1="165" x2="355" y2="255" stroke={t.trim} strokeWidth="2" opacity="0.5" />
 
+        {/* ─── Wall art (left wall, above board) ─── */}
+        <G>
+          <Path d="M 96 128 L 130 116 L 130 138 L 96 150 Z" fill={t.trim} opacity="0.5" />
+          <Path d="M 99 131 L 127 121 L 127 135 L 99 145 Z" fill={t.windowGlow} opacity="0.35" />
+        </G>
+
+        {/* ─── Wall clock (right wall) ─── */}
+        <G>
+          <Ellipse cx={228} cy={105} rx={9} ry={10} fill={t.boardBg} />
+          <Ellipse cx={228} cy={105} rx={7} ry={8} fill={t.boardSurface} />
+          <Line x1="228" y1="105" x2="228" y2="100" stroke={t.boardText} strokeWidth="1.2" />
+          <Line x1="228" y1="105" x2="232" y2="106" stroke={t.boardText} strokeWidth="1" />
+        </G>
+
         {/* ─── TASK BOARD (left wall) ─── */}
         <G>
+          <Path d="M 78 168 L 146 151 L 146 182 L 78 199 Z" fill="#000" opacity="0.25" />
           <Path d="M 80 170 L 144 153 L 144 180 L 80 197 Z" fill={t.boardBg} />
           <Path d="M 83 173 L 141 157 L 141 177 L 83 193 Z" fill={t.boardSurface} />
           {/* Task lines */}
@@ -170,6 +221,9 @@ export default function IsometricRoom({ officeStyle, avatarId, tutorialStep, emp
           <Path d="M 76 222 L 112 210 L 122 222 L 88 234 Z" fill={t.safeTop} />
           {/* Front */}
           <Path d="M 88 234 L 122 222 L 122 248 L 88 258 Z" fill={t.safeFront} />
+          {/* Front edge highlight + door seam */}
+          <Path d="M 88 234 L 122 222" stroke="#FFF" strokeWidth="0.8" opacity="0.25" />
+          <Path d="M 93 236 L 117 227 L 117 245 L 93 254 Z" fill="none" stroke="#000" strokeWidth="0.7" opacity="0.3" />
           {/* Handle */}
           <Circle cx={105} cy={234} r={5} fill={t.safeHandle} opacity="0.9" />
           <Circle cx={105} cy={234} r={2.5} fill={t.safeHandleInner} />
@@ -193,6 +247,11 @@ export default function IsometricRoom({ officeStyle, avatarId, tutorialStep, emp
           <Path d="M 142 243 L 207 220 L 237 242 L 174 263 Z" fill={t.deskTop} />
           {/* Front face */}
           <Path d="M 174 263 L 237 242 L 237 262 L 174 283 Z" fill={t.deskFront} />
+          {/* Top edge highlight for depth */}
+          <Path d="M 142 243 L 207 220 L 237 242" fill="none" stroke="#FFF" strokeWidth="1" opacity="0.22" />
+          {/* Drawer lines on front face */}
+          <Path d="M 180 266 L 210 256" stroke="#000" strokeWidth="0.7" opacity="0.25" />
+          <Path d="M 180 273 L 210 263" stroke="#000" strokeWidth="0.7" opacity="0.25" />
           {/* Desk accent strip */}
           <Line x1="142" y1="243" x2="207" y2="220" stroke={t.ceilingGlow} strokeWidth="0.8" opacity="0.2" />
 
@@ -259,8 +318,7 @@ export default function IsometricRoom({ officeStyle, avatarId, tutorialStep, emp
 
       {/* ─── Animated avatar in room ─── */}
       <Animated.View style={[styles.avatarContainer, avatarStyle]}>
-        <View style={[styles.avatarHead, { backgroundColor: '#E8C8A0' }]} />
-        <View style={[styles.avatarBody, { backgroundColor: avatar.color }]} />
+        <GameCharacter avatarId={avatarId} photoUri={photoUri} scale={0.85} />
       </Animated.View>
 
       {/* ─── Tutorial hint bubble ─── */}
