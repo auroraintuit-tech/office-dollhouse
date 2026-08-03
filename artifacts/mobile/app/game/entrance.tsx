@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useGame } from '@/contexts/GameContext';
 import ExteriorScene from '@/components/ExteriorScene';
 
 export default function EntranceScreen() {
-  const { state, initOffice } = useGame();
+  const { state, isLoaded, initOffice } = useGame();
+
+  // Safety redirect — must be in useEffect, never during render
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!state.player || !state.company) {
+      router.replace('/');
+    }
+  }, [isLoaded, state.player, state.company]);
 
   function handleEntered() {
     initOffice();
@@ -13,8 +21,7 @@ export default function EntranceScreen() {
   }
 
   if (!state.player || !state.company) {
-    router.replace('/');
-    return null;
+    return <View style={styles.container} />;
   }
 
   return (
