@@ -261,7 +261,6 @@ export default function IsometricRoom({ officeStyle, avatarId, tutorialStep, emp
       <Animated.View style={[styles.avatarContainer, avatarStyle]}>
         <View style={[styles.avatarHead, { backgroundColor: '#E8C8A0' }]} />
         <View style={[styles.avatarBody, { backgroundColor: avatar.color }]} />
-        <Ellipse cx={0} cy={0} rx={0} ry={0} fill="transparent" />
       </Animated.View>
 
       {/* ─── Tutorial hint bubble ─── */}

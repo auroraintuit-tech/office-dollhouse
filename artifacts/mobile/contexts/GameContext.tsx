@@ -158,7 +158,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
       if (raw) {
         try {
-          const saved = JSON.parse(raw) as GameState;
+          const saved = { ...INITIAL_STATE, ...(JSON.parse(raw) as Partial<GameState>) };
+          // Sanitize: roll phase back if required data is missing (guards
+          // against corrupted saves and prevents redirect loops)
+          if (!saved.player && saved.phase !== 'register') {
+            saved.phase = 'register';
+          } else if (!saved.company && !['register', 'company'].includes(saved.phase)) {
+            saved.phase = 'company';
+          }
           setState(saved);
         } catch {
           setState(INITIAL_STATE);
