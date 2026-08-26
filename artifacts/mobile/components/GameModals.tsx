@@ -7,7 +7,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { useGame, Employee, EmployeeType } from '@/contexts/GameContext';
+import { useGame, Employee, EmployeeType, GameDocument } from '@/contexts/GameContext';
 
 // ── Bottom sheet wrapper ──────────────────────────────────────────────
 interface SheetProps {
@@ -56,7 +56,7 @@ export function TaskModal({ visible, onClose }: { visible: boolean; onClose: () 
   const done = state.tasks.filter(t => t.status === 'done');
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Task Board" height={500}>
+    <Sheet visible={visible} onClose={onClose} title="Доска задач" height={500}>
       <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={false}>
         {pending.map(task => (
           <TouchableOpacity
@@ -74,7 +74,7 @@ export function TaskModal({ visible, onClose }: { visible: boolean; onClose: () 
         ))}
         {done.length > 0 && (
           <>
-            <Text style={styles.sectionLabel}>Completed</Text>
+            <Text style={styles.sectionLabel}>Выполнено</Text>
             {done.map(task => (
               <View key={task.id} style={[styles.taskRow, styles.taskDone]}>
                 <Ionicons name="checkmark-circle" size={18} color="#3D8B66" style={{ marginRight: 10 }} />
@@ -84,7 +84,7 @@ export function TaskModal({ visible, onClose }: { visible: boolean; onClose: () 
           </>
         )}
         {pending.length === 0 && done.length === 0 && (
-          <Text style={styles.emptyText}>No tasks yet. Add one below.</Text>
+          <Text style={styles.emptyText}>Задач пока нет. Добавьте первую ниже.</Text>
         )}
       </ScrollView>
       <View style={styles.inputRow}>
@@ -92,7 +92,7 @@ export function TaskModal({ visible, onClose }: { visible: boolean; onClose: () 
           style={styles.taskInput}
           value={input}
           onChangeText={setInput}
-          placeholder="New task..."
+          placeholder="Новая задача..."
           placeholderTextColor="#8C7050"
           returnKeyType="done"
           onSubmitEditing={handleAdd}
@@ -111,18 +111,18 @@ export function SafeModal({ visible, onClose }: { visible: boolean; onClose: () 
   const financeEvents = state.events.filter(e => e.type === 'finance' || e.type === 'hire');
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Company Finances" height={440}>
+    <Sheet visible={visible} onClose={onClose} title="Финансы компании" height={440}>
       {/* Balance */}
       <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Current Balance</Text>
+        <Text style={styles.balanceLabel}>Текущий баланс</Text>
         <Text style={styles.balanceAmount}>${state.balance.toLocaleString()}</Text>
-        <Text style={styles.balanceSub}>Monthly cost: ${(state.employees.length * 1000).toLocaleString()}/mo</Text>
+        <Text style={styles.balanceSub}>Расходы команды: ${(state.employees.length * 1000).toLocaleString()}/мес.</Text>
       </View>
       {/* Recent transactions */}
-      <Text style={styles.sectionLabel}>Recent Activity</Text>
+      <Text style={styles.sectionLabel}>Последние операции</Text>
       <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={false}>
         {financeEvents.length === 0 && (
-          <Text style={styles.emptyText}>No transactions yet.</Text>
+          <Text style={styles.emptyText}>Операций пока нет.</Text>
         )}
         {financeEvents.slice(0, 15).map(ev => (
           <View key={ev.id} style={styles.txRow}>
@@ -146,6 +146,12 @@ export function SafeModal({ visible, onClose }: { visible: boolean; onClose: () 
 // ── Document Folder ───────────────────────────────────────────────────
 export function FolderModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { state } = useGame();
+  const [selectedDocument, setSelectedDocument] = useState<GameDocument | null>(null);
+
+  React.useEffect(() => {
+    if (!visible) setSelectedDocument(null);
+  }, [visible]);
+
   const TYPE_ICONS: Record<string, any> = {
     contract: 'document-text',
     report: 'bar-chart',
@@ -160,38 +166,51 @@ export function FolderModal({ visible, onClose }: { visible: boolean; onClose: (
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Documents" height={420}>
-      <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={false}>
-        {state.documents.length === 0 && (
-          <Text style={styles.emptyText}>No documents yet.</Text>
-        )}
-        {state.documents.map(doc => (
-          <TouchableOpacity key={doc.id} style={styles.docRow} activeOpacity={0.75}>
-            <View style={[styles.docIcon, { backgroundColor: TYPE_COLORS[doc.type] }]}>
-              <Ionicons name={TYPE_ICONS[doc.type]} size={18} color="#FFFFFF" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.docTitle}>{doc.title}</Text>
-              <Text style={styles.docType}>{doc.type.charAt(0).toUpperCase() + doc.type.slice(1)}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="#8C7050" />
+    <Sheet visible={visible} onClose={onClose} title={selectedDocument?.title ?? 'Документы'} height={500}>
+      {selectedDocument ? (
+        <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity onPress={() => setSelectedDocument(null)} style={styles.backRow}>
+            <Ionicons name="arrow-back" size={16} color="#8C7050" />
+            <Text style={styles.backText}>К списку документов</Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          {selectedDocument.summary ? <Text style={styles.documentSummary}>{selectedDocument.summary}</Text> : null}
+          <Text style={styles.documentContent} selectable>
+            {selectedDocument.content || 'В этом документе пока нет содержимого.'}
+          </Text>
+        </ScrollView>
+      ) : (
+        <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={false}>
+          {state.documents.length === 0 && (
+            <Text style={styles.emptyText}>Документов пока нет.</Text>
+          )}
+          {state.documents.map(doc => (
+            <TouchableOpacity key={doc.id} style={styles.docRow} activeOpacity={0.75} onPress={() => setSelectedDocument(doc)}>
+              <View style={[styles.docIcon, { backgroundColor: TYPE_COLORS[doc.type] }]}>
+                <Ionicons name={TYPE_ICONS[doc.type]} size={18} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.docTitle}>{doc.title}</Text>
+                <Text style={styles.docType}>{doc.type === 'report' ? 'Отчёт' : doc.type === 'contract' ? 'Документ' : doc.type === 'invoice' ? 'Счёт' : 'Заметка'}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#8C7050" />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
     </Sheet>
   );
 }
 
 // ── Hire Employee ─────────────────────────────────────────────────────
 const EMPLOYEE_DEFS: Array<{
-  type: EmployeeType; label: string; desc: string; cost: number; icon: any; color: string;
+  type: EmployeeType; label: string; desc: string; cost: number; icon: any; color: string; available: boolean;
 }> = [
-  { type: 'assistant', label: 'Assistant', desc: 'Organizes your schedule & tasks', cost: 800, icon: 'person', color: '#3A1A5A' },
-  { type: 'accountant', label: 'Accountant', desc: 'Manages finances & reports', cost: 1200, icon: 'calculator', color: '#1A3A6A' },
-  { type: 'lawyer', label: 'Lawyer', desc: 'Handles contracts & compliance', cost: 1500, icon: 'shield-checkmark', color: '#1A3A2A' },
-  { type: 'marketer', label: 'Marketer', desc: 'Drives growth & campaigns', cost: 1000, icon: 'megaphone', color: '#5A2A0A' },
-  { type: 'it', label: 'IT Specialist', desc: 'Tech support & automation', cost: 1100, icon: 'hardware-chip', color: '#0A3A3A' },
-  { type: 'warehouse', label: 'Warehouse Mgr', desc: 'Inventory & logistics', cost: 900, icon: 'cube', color: '#3A2A0A' },
+  { type: 'assistant', label: 'Бизнес-ассистент', desc: 'Готовит рабочие документы и планы', cost: 800, icon: 'person', color: '#3A1A5A', available: true },
+  { type: 'accountant', label: 'Бухгалтер', desc: 'Финансы и управленческие отчёты', cost: 1200, icon: 'calculator', color: '#1A3A6A', available: false },
+  { type: 'lawyer', label: 'Юрист', desc: 'Договоры и проверка рисков', cost: 1500, icon: 'shield-checkmark', color: '#1A3A2A', available: false },
+  { type: 'marketer', label: 'Маркетолог', desc: 'Продвижение и рост продаж', cost: 1000, icon: 'megaphone', color: '#5A2A0A', available: false },
+  { type: 'it', label: 'IT-специалист', desc: 'Автоматизация и техподдержка', cost: 1100, icon: 'hardware-chip', color: '#0A3A3A', available: false },
+  { type: 'warehouse', label: 'Заведующий складом', desc: 'Остатки и логистика', cost: 900, icon: 'cube', color: '#3A2A0A', available: false },
 ];
 
 export function HireModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -211,7 +230,7 @@ export function HireModal({ visible, onClose }: { visible: boolean; onClose: () 
   }
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Hire AI Employee" height={520}>
+    <Sheet visible={visible} onClose={onClose} title="Нанять AI-сотрудника" height={520}>
       <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={false}>
         {EMPLOYEE_DEFS.map(def => {
           const alreadyHired = state.employees.some(e => e.type === def.type);
@@ -219,9 +238,10 @@ export function HireModal({ visible, onClose }: { visible: boolean; onClose: () 
           return (
             <TouchableOpacity
               key={def.type}
-              style={[styles.hireRow, alreadyHired && styles.hireRowDisabled]}
-              onPress={() => !alreadyHired && canAfford && hire(def.type)}
-              activeOpacity={alreadyHired || !canAfford ? 1 : 0.75}
+              style={[styles.hireRow, (alreadyHired || !def.available) && styles.hireRowDisabled]}
+              onPress={() => def.available && !alreadyHired && canAfford && hire(def.type)}
+              activeOpacity={alreadyHired || !canAfford || !def.available ? 1 : 0.75}
+              disabled={alreadyHired || !canAfford || !def.available}
             >
               <View style={[styles.hireIcon, { backgroundColor: def.color }]}>
                 <Ionicons name={def.icon} size={20} color="#FFFFFF" />
@@ -233,6 +253,8 @@ export function HireModal({ visible, onClose }: { visible: boolean; onClose: () 
               <View style={styles.hireCostBadge}>
                 {alreadyHired ? (
                   <Ionicons name="checkmark-circle" size={20} color="#3D8B66" />
+                ) : !def.available ? (
+                  <Text style={styles.hireCostDisabled}>Скоро</Text>
                 ) : (
                   <Text style={[styles.hireCost, !canAfford && styles.hireCostDisabled]}>
                     ${def.cost.toLocaleString()}
@@ -497,6 +519,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     color: '#8C7050',
     marginTop: 2,
+  },
+  backRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 10, marginBottom: 8,
+  },
+  backText: { color: '#8C7050', fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  documentSummary: {
+    color: '#5A4028', fontSize: 14, fontFamily: 'Inter_600SemiBold',
+    lineHeight: 20, marginBottom: 14,
+  },
+  documentContent: {
+    color: '#1E120A', fontSize: 14, fontFamily: 'Inter_400Regular',
+    lineHeight: 21, paddingBottom: 24,
   },
   // Hire
   hireRow: {

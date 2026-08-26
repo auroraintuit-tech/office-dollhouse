@@ -221,12 +221,12 @@ export const OFFICE_THEMES: Record<'hitech' | 'classic' | 'loft', OfficeStyleThe
 
 // Avatar definitions
 export const AVATARS = [
-  { id: 'ceo' as const, label: 'CEO', color: '#1A3A6A', accent: '#4A8FCC', icon: 'briefcase' },
-  { id: 'strategist' as const, label: 'Strategist', color: '#3A1A5A', accent: '#9A50CC', icon: 'telescope' },
-  { id: 'techie' as const, label: 'Tech Wizard', color: '#0A3A3A', accent: '#20AAAA', icon: 'laptop' },
-  { id: 'creative' as const, label: 'Creative', color: '#5A2A0A', accent: '#E8742A', icon: 'color-palette' },
-  { id: 'diplomat' as const, label: 'Diplomat', color: '#2A3A2A', accent: '#60A860', icon: 'globe' },
-  { id: 'innovator' as const, label: 'Innovator', color: '#4A3A0A', accent: '#E0A820', icon: 'bulb' },
+  { id: 'ceo' as const, label: 'Руководитель', color: '#1A3A6A', accent: '#4A8FCC', icon: 'briefcase' },
+  { id: 'strategist' as const, label: 'Стратег', color: '#3A1A5A', accent: '#9A50CC', icon: 'telescope' },
+  { id: 'techie' as const, label: 'Технарь', color: '#0A3A3A', accent: '#20AAAA', icon: 'laptop' },
+  { id: 'creative' as const, label: 'Креатор', color: '#5A2A0A', accent: '#E8742A', icon: 'color-palette' },
+  { id: 'diplomat' as const, label: 'Дипломат', color: '#2A3A2A', accent: '#60A860', icon: 'globe' },
+  { id: 'innovator' as const, label: 'Инноватор', color: '#4A3A0A', accent: '#E0A820', icon: 'bulb' },
 ] as const;
 
 export type AvatarId = typeof AVATARS[number]['id'];

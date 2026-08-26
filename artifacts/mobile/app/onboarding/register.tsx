@@ -15,7 +15,7 @@ export default function RegisterScreen() {
 
   function handleContinue() {
     if (!name.trim()) {
-      setNameError('Please enter your name');
+      setNameError('Введите ваше имя');
       return;
     }
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -33,8 +33,8 @@ export default function RegisterScreen() {
           {/* Title */}
           <View style={styles.titleBlock}>
             <Text style={styles.titleLabel}>OFFICEOS</Text>
-            <Text style={styles.title}>What's your{'\n'}name?</Text>
-            <Text style={styles.subtitle}>You'll be the founder & CEO of your company</Text>
+            <Text style={styles.title}>Как вас{'\n'}зовут?</Text>
+            <Text style={styles.subtitle}>Вы станете основателем и руководителем своей компании</Text>
           </View>
 
           {/* Input */}
@@ -44,7 +44,7 @@ export default function RegisterScreen() {
                 style={styles.input}
                 value={name}
                 onChangeText={t => { setName(t); setNameError(''); }}
-                placeholder="Your full name"
+                placeholder="Имя и фамилия"
                 placeholderTextColor="#B8A88E"
                 autoCapitalize="words"
                 autoFocus
@@ -62,7 +62,7 @@ export default function RegisterScreen() {
               onPress={handleContinue}
               activeOpacity={0.85}
             >
-              <Text style={styles.btnText}>Continue</Text>
+              <Text style={styles.btnText}>Продолжить</Text>
             </TouchableOpacity>
           </View>
         </View>
