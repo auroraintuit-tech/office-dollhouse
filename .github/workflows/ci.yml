@@ -40,3 +40,8 @@ jobs:
 
       - name: Build API server
         run: pnpm --filter @workspace/api-server build
+
+      - name: Export Expo web app
+        env:
+          EXPO_PUBLIC_API_URL: https://api.example.invalid
+        run: pnpm --filter @workspace/mobile exec expo export --platform web --output-dir dist
