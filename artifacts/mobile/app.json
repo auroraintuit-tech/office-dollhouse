@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "OfficeOS",
-    "slug": "mobile",
-    "version": "1.0.0",
+    "slug": "officeos",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "officeos",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -14,9 +14,16 @@
       "backgroundColor": "#1A0D06"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.auroraintuit.officeos",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "OfficeOS использует выбранное изображение только для аватара или логотипа компании."
+      }
     },
-    "android": {},
+    "android": {
+      "package": "com.auroraintuit.officeos"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },

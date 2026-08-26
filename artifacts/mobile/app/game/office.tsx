@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useGame, Employee } from '@/contexts/GameContext';
+import { useGame } from '@/contexts/GameContext';
 import IsometricRoom from '@/components/IsometricRoom';
 import { TaskModal, SafeModal, FolderModal, HireModal } from '@/components/GameModals';
 import { EmployeeSheet } from '@/components/EmployeeSheet';
@@ -34,8 +34,8 @@ export default function OfficeScreen() {
 
   const t = OFFICE_THEMES[state.officeStyle];
 
-  const level = 1 + Math.min(state.employees.length, 6);
-  const companyName = state.company?.name ?? 'My Company';
+  const level = 1 + Math.floor(state.xp / 100);
+  const companyName = state.company?.name ?? 'Моя компания';
   const pendingTasks = state.tasks.filter(tk => tk.status !== 'done').length;
   const formatBalance = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : `$${n}`;
 
@@ -64,10 +64,11 @@ export default function OfficeScreen() {
 
   // Objective banner text
   const objective = (() => {
-    if (state.tutorialStep === 1) return 'Tap the glowing task board on the wall';
-    if (state.tutorialStep === 2) return 'Open the safe to check your finances';
-    if (state.tutorialStep === 3) return 'Check your desk — your command center';
-    if (state.employees.length === 0) return 'Hire your first employee to start earning';
+    if (state.tutorialStep === 1) return 'Нажмите на подсвеченную доску задач';
+    if (state.tutorialStep === 2) return 'Откройте сейф и проверьте финансы';
+    if (state.tutorialStep === 3) return 'Изучите рабочий стол — ваш центр управления';
+    if (state.employees.length === 0) return 'Наймите первого AI-сотрудника';
+    if (state.xp < 100) return `До новой зоны офиса: ${100 - state.xp} XP`;
     return null;
   })();
 
@@ -87,7 +88,7 @@ export default function OfficeScreen() {
           )}
           <View style={{ flex: 1 }}>
             <Text style={styles.companyName} numberOfLines={1}>{companyName}</Text>
-            <Text style={styles.levelText}>Level {level} office</Text>
+            <Text style={styles.levelText}>Уровень {level} · {state.xp % 100}/100 XP</Text>
           </View>
         </View>
         <View style={styles.topRight}>
@@ -137,7 +138,7 @@ export default function OfficeScreen() {
                 accessibilityLabel="Hire employee"
               >
                 <Ionicons name="person-add" size={17} color="#FFFFFF" />
-                <Text style={styles.hireFabText}>Hire</Text>
+                <Text style={styles.hireFabText}>Нанять</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -148,10 +149,10 @@ export default function OfficeScreen() {
             {state.employees.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="people-outline" size={40} color="#9AA7B2" />
-                <Text style={styles.emptyTitle}>No team yet</Text>
-                <Text style={styles.emptyDesc}>Hire your first AI employee and they'll appear in your office.</Text>
+                <Text style={styles.emptyTitle}>Команды пока нет</Text>
+                <Text style={styles.emptyDesc}>Наймите AI-сотрудника — он появится в вашем офисе.</Text>
                 <TouchableOpacity onPress={() => setActiveModal('hire')} style={styles.emptyBtn}>
-                  <Text style={styles.emptyBtnText}>Hire employee</Text>
+                  <Text style={styles.emptyBtnText}>Нанять сотрудника</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -172,7 +173,7 @@ export default function OfficeScreen() {
                     <Text style={[styles.teamStatusText, {
                       color: emp.status === 'working' ? '#22A05A' : emp.status === 'done' ? '#B8780A' : '#7A8A99',
                     }]}>
-                      {emp.status === 'working' ? 'Working' : emp.status === 'done' ? 'Done' : 'Free'}
+                      {emp.status === 'working' ? 'Работает' : emp.status === 'done' ? 'Готово' : emp.status === 'attention' ? 'Внимание' : 'Свободен'}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -181,7 +182,7 @@ export default function OfficeScreen() {
             {state.employees.length > 0 && (
               <TouchableOpacity onPress={() => setActiveModal('hire')} style={styles.teamHireBtn} activeOpacity={0.8}>
                 <Ionicons name="add" size={18} color="#C67C12" />
-                <Text style={styles.teamHireText}>Hire another employee</Text>
+                <Text style={styles.teamHireText}>Нанять ещё сотрудника</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -193,8 +194,8 @@ export default function OfficeScreen() {
               {state.tasks.length === 0 && (
                 <View style={styles.emptyState}>
                   <Ionicons name="checkbox-outline" size={40} color="#9AA7B2" />
-                  <Text style={styles.emptyTitle}>No tasks</Text>
-                  <Text style={styles.emptyDesc}>Add a task below or assign one to an employee.</Text>
+                  <Text style={styles.emptyTitle}>Задач пока нет</Text>
+                  <Text style={styles.emptyDesc}>Добавьте задачу или назначьте её сотруднику.</Text>
                 </View>
               )}
               {state.tasks.map(task => {
@@ -207,16 +208,17 @@ export default function OfficeScreen() {
                     activeOpacity={task.status === 'pending' ? 0.75 : 1}
                   >
                     <Ionicons
-                      name={task.status === 'done' ? 'checkmark-circle' : task.status === 'in_progress' ? 'sync-circle' : 'ellipse-outline'}
+                      name={task.status === 'done' ? 'checkmark-circle' : task.status === 'in_progress' ? 'sync-circle' : task.status === 'failed' ? 'alert-circle' : 'ellipse-outline'}
                       size={20}
-                      color={task.status === 'done' ? '#2E7D5B' : task.status === 'in_progress' ? '#F0A500' : '#C67C12'}
+                      color={task.status === 'done' ? '#2E7D5B' : task.status === 'in_progress' ? '#F0A500' : task.status === 'failed' ? '#C43020' : '#C67C12'}
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.taskCardTitle, task.status === 'done' && { color: '#9AA7B2', textDecorationLine: 'line-through' }]}>
                         {task.title}
                       </Text>
-                      {assignee && <Text style={styles.taskCardMeta}>{assignee.name}{task.status === 'in_progress' ? ' · working on it' : ''}</Text>}
+                      {assignee && <Text style={styles.taskCardMeta}>{assignee.name}{task.status === 'in_progress' ? ' · выполняет' : ''}</Text>}
                       {task.result && <Text style={styles.taskCardResult}>{task.result}</Text>}
+                      {task.error && <Text style={[styles.taskCardResult, { color: '#C43020' }]}>{task.error}</Text>}
                     </View>
                   </TouchableOpacity>
                 );
@@ -227,7 +229,7 @@ export default function OfficeScreen() {
                 style={styles.taskInput}
                 value={taskInput}
                 onChangeText={setTaskInput}
-                placeholder="New task..."
+                placeholder="Новая задача..."
                 placeholderTextColor="#9AA7B2"
                 returnKeyType="done"
                 onSubmitEditing={handleAddTask}
@@ -244,20 +246,20 @@ export default function OfficeScreen() {
             {state.documents.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="folder-open-outline" size={40} color="#9AA7B2" />
-                <Text style={styles.emptyTitle}>No documents</Text>
-                <Text style={styles.emptyDesc}>Completed tasks produce reports that appear here.</Text>
+                  <Text style={styles.emptyTitle}>Документов пока нет</Text>
+                  <Text style={styles.emptyDesc}>Результаты выполненных AI-задач появятся здесь.</Text>
               </View>
             )}
             {state.documents.map(doc => (
-              <View key={doc.id} style={styles.docRow}>
+              <TouchableOpacity key={doc.id} style={styles.docRow} onPress={() => setActiveModal('folder')} activeOpacity={0.75}>
                 <View style={styles.docIcon}>
                   <Ionicons name={doc.type === 'contract' ? 'document-text' : doc.type === 'report' ? 'bar-chart' : doc.type === 'invoice' ? 'receipt' : 'mail'} size={17} color="#2E6DA4" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.docTitle}>{doc.title}</Text>
-                  <Text style={styles.docMeta}>{doc.type.charAt(0).toUpperCase() + doc.type.slice(1)} · {new Date(doc.createdAt).toLocaleDateString()}</Text>
+                  <Text style={styles.docMeta}>{doc.type === 'report' ? 'Отчёт' : doc.type === 'contract' ? 'Документ' : doc.type === 'invoice' ? 'Счёт' : 'Заметка'} · {new Date(doc.createdAt).toLocaleDateString()}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         )}
@@ -266,10 +268,10 @@ export default function OfficeScreen() {
       {/* ─── Bottom navigation ─── */}
       <View style={[styles.nav, { paddingBottom: bottomPad, height: NAV_H + bottomPad }]}>
         {([
-          ['office', 'business', 'Office'],
-          ['team', 'people', 'Team'],
-          ['tasks', 'checkbox', 'Tasks'],
-          ['docs', 'folder', 'Docs'],
+          ['office', 'business', 'Офис'],
+          ['team', 'people', 'Команда'],
+          ['tasks', 'checkbox', 'Задачи'],
+          ['docs', 'folder', 'Файлы'],
         ] as const).map(([key, icon, label]) => {
           const active = navTab === key;
           const badge = key === 'tasks' && pendingTasks > 0 ? pendingTasks : null;

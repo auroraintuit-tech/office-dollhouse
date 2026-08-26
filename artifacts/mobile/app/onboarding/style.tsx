@@ -17,24 +17,24 @@ const STYLES: Array<{
   {
     id: 'hitech',
     name: 'Hi-Tech',
-    tagline: 'Futuristic & Sleek',
-    desc: 'Dark command-center aesthetic with cyan glows and metallic surfaces. Perfect for the digital-first founder.',
+    tagline: 'Технологичный',
+    desc: 'Современный цифровой офис с холодными оттенками, подсветкой и металлическими поверхностями.',
     palette: ['#0C1525', '#1A2240', '#00AAFF', '#00E8FF'],
     accent: '#00AAFF',
   },
   {
     id: 'classic',
-    name: 'Executive Classic',
-    tagline: 'Elegant & Timeless',
-    desc: 'Mahogany wood, warm lighting, gold accents. The office of someone who means serious business.',
+    name: 'Деловая классика',
+    tagline: 'Солидный',
+    desc: 'Тёплое дерево, мягкое освещение и золотистые акценты для серьёзного делового офиса.',
     palette: ['#2C1A0E', '#4A2A15', '#C4A040', '#8A6820'],
     accent: '#C4A040',
   },
   {
     id: 'loft',
-    name: 'Modern Loft',
-    tagline: 'Industrial & Warm',
-    desc: 'Exposed concrete, light wood, copper fixtures. Creative, grounded, distinctly modern.',
+    name: 'Современный лофт',
+    tagline: 'Креативный',
+    desc: 'Бетон, светлое дерево и медные детали — современное пространство для растущей команды.',
     palette: ['#282828', '#C0B098', '#D47340', '#C09870'],
     accent: '#D47340',
   },
@@ -59,8 +59,8 @@ export default function StyleScreen() {
     <OnboardingLayout step={4}>
       <View style={styles.container}>
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Choose your{'\n'}office style</Text>
-          <Text style={styles.subtitle}>You can always redecorate later</Text>
+          <Text style={styles.title}>Выберите стиль{'\n'}офиса</Text>
+          <Text style={styles.subtitle}>Позже оформление можно будет изменить</Text>
         </View>
 
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
@@ -106,7 +106,7 @@ export default function StyleScreen() {
 
         <View style={styles.footer}>
           <TouchableOpacity style={styles.btn} onPress={handleContinue} activeOpacity={0.85}>
-            <Text style={styles.btnText}>Open My Office</Text>
+            <Text style={styles.btnText}>Открыть мой офис</Text>
           </TouchableOpacity>
         </View>
       </View>

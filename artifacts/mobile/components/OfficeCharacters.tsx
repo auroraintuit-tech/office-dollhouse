@@ -11,12 +11,12 @@ import { AvatarId } from '@/constants/colors';
 
 // Visual identity per employee type
 export const EMPLOYEE_VISUALS: Record<EmployeeType, { color: string; accent: string; role: string; icon: any }> = {
-  assistant:  { color: '#7C5CBF', accent: '#9F84D6', role: 'Assistant', icon: 'person' },
-  accountant: { color: '#2E6DA4', accent: '#5B93C6', role: 'Accountant', icon: 'calculator' },
-  lawyer:     { color: '#2E7D5B', accent: '#57A583', role: 'Lawyer', icon: 'shield-checkmark' },
-  marketer:   { color: '#C2622A', accent: '#DE8A52', role: 'Marketer', icon: 'megaphone' },
-  it:         { color: '#31838A', accent: '#5BAAB0', role: 'IT Specialist', icon: 'hardware-chip' },
-  warehouse:  { color: '#8A6D3B', accent: '#AD9160', role: 'Warehouse Mgr', icon: 'cube' },
+  assistant:  { color: '#7C5CBF', accent: '#9F84D6', role: 'Бизнес-ассистент', icon: 'person' },
+  accountant: { color: '#2E6DA4', accent: '#5B93C6', role: 'Бухгалтер', icon: 'calculator' },
+  lawyer:     { color: '#2E7D5B', accent: '#57A583', role: 'Юрист', icon: 'shield-checkmark' },
+  marketer:   { color: '#C2622A', accent: '#DE8A52', role: 'Маркетолог', icon: 'megaphone' },
+  it:         { color: '#31838A', accent: '#5BAAB0', role: 'IT-специалист', icon: 'hardware-chip' },
+  warehouse:  { color: '#8A6D3B', accent: '#AD9160', role: 'Заведующий складом', icon: 'cube' },
 };
 
 const STATUS_META: Record<string, { color: string; icon: any } | null> = {

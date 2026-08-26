@@ -62,8 +62,8 @@ export default function AvatarScreen() {
     <OnboardingLayout step={3}>
       <View style={styles.container}>
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Create your{'\n'}character</Text>
-          <Text style={styles.subtitle}>Add your photo — your character will wear your face in the office</Text>
+          <Text style={styles.title}>Создайте своего{'\n'}персонажа</Text>
+          <Text style={styles.subtitle}>Добавьте фото или выберите готового персонажа</Text>
         </View>
 
         {/* Photo + preview row */}
@@ -79,19 +79,19 @@ export default function AvatarScreen() {
             </View>
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.previewName}>{photoUri ? (state.player?.name ?? 'You') : selectedAvatar.label}</Text>
+            <Text style={styles.previewName}>{photoUri ? (state.player?.name ?? 'Вы') : selectedAvatar.label}</Text>
             <Text style={styles.previewHint}>
-              {photoUri ? 'Looking sharp! Tap to change photo.' : 'Tap to use your own photo'}
+              {photoUri ? 'Нажмите, чтобы заменить фотографию' : 'Нажмите, чтобы добавить своё фото'}
             </Text>
             {photoUri && (
               <TouchableOpacity onPress={() => setPhotoUri(null)} style={styles.removePhoto}>
-                <Text style={styles.removePhotoText}>Remove photo</Text>
+                <Text style={styles.removePhotoText}>Удалить фото</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
 
-        <Text style={styles.gridLabel}>{photoUri ? 'Outfit style' : 'Or pick a character'}</Text>
+        <Text style={styles.gridLabel}>{photoUri ? 'Стиль одежды' : 'Или выберите персонажа'}</Text>
 
         {/* Avatar grid */}
         <ScrollView
@@ -116,7 +116,7 @@ export default function AvatarScreen() {
 
         <View style={styles.footer}>
           <TouchableOpacity style={styles.btn} onPress={handleContinue} activeOpacity={0.85}>
-            <Text style={styles.btnText}>Continue</Text>
+            <Text style={styles.btnText}>Продолжить</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck product workspace
+        run: |
+          pnpm run typecheck:libs
+          pnpm --filter @workspace/mobile typecheck
+          pnpm --filter @workspace/api-server typecheck
+
+      - name: Build API server
+        run: pnpm --filter @workspace/api-server build
+
+      - name: Export Expo web app
+        env:
+          EXPO_PUBLIC_API_URL: https://api.example.invalid
+        run: pnpm --filter @workspace/mobile exec expo export --platform web --output-dir dist

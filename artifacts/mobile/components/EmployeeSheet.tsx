@@ -10,11 +10,11 @@ import { useGame, Employee } from '@/contexts/GameContext';
 import { EMPLOYEE_VISUALS } from '@/components/OfficeCharacters';
 
 const STATUS_LABELS: Record<string, { text: string; color: string }> = {
-  idle: { text: 'Available', color: '#7A8A99' },
-  working: { text: 'Working', color: '#2ECC71' },
-  done: { text: 'Result ready', color: '#F0A500' },
-  attention: { text: 'Needs answer', color: '#E67E22' },
-  away: { text: 'Away', color: '#7A8A99' },
+  idle: { text: 'Свободен', color: '#7A8A99' },
+  working: { text: 'Работает', color: '#2ECC71' },
+  done: { text: 'Результат готов', color: '#F0A500' },
+  attention: { text: 'Нужно внимание', color: '#E67E22' },
+  away: { text: 'Не в сети', color: '#7A8A99' },
 };
 
 type Tab = 'overview' | 'chat' | 'tasks';
@@ -96,7 +96,7 @@ export function EmployeeSheet({ employeeId, onClose }: { employeeId: string | nu
 
           {/* Tabs */}
           <View style={styles.tabs}>
-            {([['overview', 'Overview'], ['chat', 'Chat'], ['tasks', 'Tasks']] as const).map(([key, label]) => (
+            {([['overview', 'Обзор'], ['chat', 'Чат'], ['tasks', 'Задачи']] as const).map(([key, label]) => (
               <TouchableOpacity
                 key={key}
                 onPress={() => setTab(key)}
@@ -113,19 +113,19 @@ export function EmployeeSheet({ employeeId, onClose }: { employeeId: string | nu
             {tab === 'overview' && (
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.infoCard}>
-                  <Text style={styles.infoLabel}>Current task</Text>
+                  <Text style={styles.infoLabel}>Текущая задача</Text>
                   <Text style={styles.infoValue}>
-                    {currentTask ? currentTask.title : 'No active task'}
+                    {currentTask ? currentTask.title : 'Нет активной задачи'}
                   </Text>
                 </View>
                 <View style={styles.infoCard}>
-                  <Text style={styles.infoLabel}>Last result</Text>
+                  <Text style={styles.infoLabel}>Последний результат</Text>
                   <Text style={styles.infoValue}>
-                    {employee.lastResult ?? 'No results yet'}
+                    {employee.lastResult ?? 'Результатов пока нет'}
                   </Text>
                 </View>
                 <View style={styles.infoCard}>
-                  <Text style={styles.infoLabel}>Hired</Text>
+                  <Text style={styles.infoLabel}>Нанят</Text>
                   <Text style={styles.infoValue}>{new Date(employee.hiredAt).toLocaleDateString()}</Text>
                 </View>
               </ScrollView>
@@ -135,7 +135,7 @@ export function EmployeeSheet({ employeeId, onClose }: { employeeId: string | nu
               <>
                 <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
                   {employee.messages.length === 0 && (
-                    <Text style={styles.empty}>Say hello to {employee.name.split(' ')[0]}!</Text>
+                    <Text style={styles.empty}>Напишите сообщение сотруднику {employee.name.split(' ')[0]}</Text>
                   )}
                   {employee.messages.map(msg => (
                     <View key={msg.id} style={[styles.msgRow, msg.role === 'user' && styles.msgRowUser]}>
@@ -150,7 +150,7 @@ export function EmployeeSheet({ employeeId, onClose }: { employeeId: string | nu
                     style={styles.input}
                     value={chatInput}
                     onChangeText={setChatInput}
-                    placeholder={`Message ${employee.name.split(' ')[0]}...`}
+                    placeholder="Введите сообщение..."
                     placeholderTextColor="#9AA7B2"
                     returnKeyType="send"
                     onSubmitEditing={sendChat}
@@ -164,17 +164,18 @@ export function EmployeeSheet({ employeeId, onClose }: { employeeId: string | nu
 
             {tab === 'tasks' && (
               <ScrollView showsVerticalScrollIndicator={false}>
-                {empTasks.length === 0 && <Text style={styles.empty}>No tasks assigned yet.</Text>}
+                {empTasks.length === 0 && <Text style={styles.empty}>Назначенных задач пока нет.</Text>}
                 {empTasks.map(task => (
                   <View key={task.id} style={styles.taskRow}>
                     <Ionicons
-                      name={task.status === 'done' ? 'checkmark-circle' : 'time'}
+                      name={task.status === 'done' ? 'checkmark-circle' : task.status === 'failed' ? 'alert-circle' : 'time'}
                       size={18}
-                      color={task.status === 'done' ? '#2E7D5B' : '#F0A500'}
+                      color={task.status === 'done' ? '#2E7D5B' : task.status === 'failed' ? '#C43020' : '#F0A500'}
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.taskTitle, task.status === 'done' && styles.taskTitleDone]}>{task.title}</Text>
                       {task.result && <Text style={styles.taskResult}>{task.result}</Text>}
+                      {task.error && <Text style={[styles.taskResult, { color: '#C43020' }]}>{task.error}</Text>}
                     </View>
                   </View>
                 ))}
@@ -189,7 +190,7 @@ export function EmployeeSheet({ employeeId, onClose }: { employeeId: string | nu
                 style={styles.input}
                 value={taskInput}
                 onChangeText={setTaskInput}
-                placeholder="Describe the task..."
+                placeholder="Опишите задачу..."
                 placeholderTextColor="#9AA7B2"
                 autoFocus
                 returnKeyType="send"
@@ -197,10 +198,10 @@ export function EmployeeSheet({ employeeId, onClose }: { employeeId: string | nu
               />
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                 <TouchableOpacity onPress={() => setShowTaskForm(false)} style={styles.cancelBtn}>
-                  <Text style={styles.cancelText}>Cancel</Text>
+                  <Text style={styles.cancelText}>Отмена</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={submitTask} style={[styles.assignBtn, { flex: 1 }]}>
-                  <Text style={styles.assignText}>Send task</Text>
+                  <Text style={styles.assignText}>Отправить задачу</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -210,10 +211,10 @@ export function EmployeeSheet({ employeeId, onClose }: { employeeId: string | nu
               style={[styles.assignBtn, employee.status === 'working' && { opacity: 0.5 }]}
               activeOpacity={0.85}
               disabled={employee.status === 'working'}
-              accessibilityLabel={employee.status === 'working' ? 'Busy with a task' : 'Assign a task'}
+              accessibilityLabel={employee.status === 'working' ? 'Сотрудник выполняет задачу' : 'Назначить задачу'}
             >
               <Ionicons name={employee.status === 'working' ? 'hourglass' : 'add-circle'} size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.assignText}>{employee.status === 'working' ? 'Working on a task...' : 'Assign task'}</Text>
+              <Text style={styles.assignText}>{employee.status === 'working' ? 'Выполняет задачу...' : 'Назначить задачу'}</Text>
             </TouchableOpacity>
           )}
         </View>

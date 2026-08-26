@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: ai
+    description: AI employee operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /ai/task:
+    post:
+      operationId: executeAiTask
+      tags: [ai]
+      summary: Execute a business task with the AI assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiTaskRequest"
+      responses:
+        "200":
+          description: Structured task result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiTaskResult"
+        "400":
+          description: Invalid task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: AI provider unavailable or returned an invalid result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: AI service is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +77,46 @@ components:
           type: string
       required:
         - status
-
+    AiTaskRequest:
+      type: object
+      properties:
+        task:
+          type: string
+          maxLength: 4000
+        companyName:
+          type: string
+        playerName:
+          type: string
+      required:
+        - task
+    AiTaskResult:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        deliverable:
+          type: string
+        nextSteps:
+          type: array
+          items:
+            type: string
+        riskNote:
+          type: string
+      required:
+        - title
+        - summary
+        - deliverable
+        - nextSteps
+        - riskNote
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message

@@ -33,7 +33,7 @@ export default function CompanyScreen() {
 
   function handleContinue() {
     if (!companyName.trim()) {
-      setNameError('Please enter a company name');
+      setNameError('Введите название компании');
       return;
     }
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -51,8 +51,8 @@ export default function CompanyScreen() {
       >
         <View style={styles.container}>
           <View style={styles.titleBlock}>
-            <Text style={styles.title}>Name your{'\n'}company</Text>
-            <Text style={styles.subtitle}>This will appear on your office sign</Text>
+            <Text style={styles.title}>Назовите свою{'\n'}компанию</Text>
+            <Text style={styles.subtitle}>Название появится на вывеске вашего офиса</Text>
           </View>
 
           {/* Logo picker */}
@@ -70,8 +70,8 @@ export default function CompanyScreen() {
               </View>
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
-              <Text style={styles.logoLabel}>Company Logo</Text>
-              <Text style={styles.logoHint}>Tap to upload from your library (optional)</Text>
+              <Text style={styles.logoLabel}>Логотип компании</Text>
+              <Text style={styles.logoHint}>Нажмите, чтобы выбрать изображение — необязательно</Text>
             </View>
           </View>
 
@@ -82,7 +82,7 @@ export default function CompanyScreen() {
                 style={styles.input}
                 value={companyName}
                 onChangeText={t => { setCompanyName(t); setNameError(''); }}
-                placeholder="e.g. Apex Ventures"
+                placeholder="Например, Aurora Ventures"
                 placeholderTextColor="#B8A88E"
                 autoCapitalize="words"
                 returnKeyType="done"
@@ -99,7 +99,7 @@ export default function CompanyScreen() {
               onPress={handleContinue}
               activeOpacity={0.85}
             >
-              <Text style={styles.btnText}>Continue</Text>
+              <Text style={styles.btnText}>Продолжить</Text>
             </TouchableOpacity>
           </View>
         </View>
