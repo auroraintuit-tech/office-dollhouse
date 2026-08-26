@@ -250,7 +250,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       employees: prev.employees.map(e => e.id === employeeId
         ? { ...e, status: 'working' as const, currentTaskId: taskId, lastResult: null }
         : e),
-      events: [{ id: genId(), message: `Задача «${title}» передана сотруднику ${employee.name}.`, type: 'task', timestamp: createdAt }, ...prev.events].slice(0, 50),
+      events: [{ id: genId(), message: `Задача «${title}» передана сотруднику ${employee.name}.`, type: 'task' as const, timestamp: createdAt }, ...prev.events].slice(0, 50),
     }));
 
     void executeAiTask({
@@ -317,7 +317,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         employees: prev.employees.map(e => e.id === employeeId
           ? { ...e, status: 'attention' as const, currentTaskId: null, lastResult: message }
           : e),
-        events: [{ id: genId(), message: `Задача «${title}» требует повторного запуска: ${message}`, type: 'system', timestamp: Date.now() }, ...prev.events].slice(0, 50),
+        events: [{ id: genId(), message: `Задача «${title}» требует повторного запуска: ${message}`, type: 'system' as const, timestamp: Date.now() }, ...prev.events].slice(0, 50),
       }));
     });
   }, [persist]);
